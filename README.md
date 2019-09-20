@@ -1,6 +1,6 @@
-# semantic-styles
+# semantic-playground
 
-`semantic-styles` is a library of comprised of many different languages implemented in many different semantic frameworks using Haskell as a meta-language.
+`semantic-playground` is a library of comprised of many different languages implemented in many different semantic frameworks using Haskell as a meta-language.
 
 So far we have:
 
@@ -9,6 +9,7 @@ So far we have:
 - [x] IMP++
 - [ ] LAMBDA
 - [ ] LAMBDA++
+- [ ] Guardd Command Language
 
 #### Semantics
 
@@ -21,7 +22,7 @@ So far we have:
 - [ ] SECD Machine
 - [ ] SCC Machine
 - [ ] CHAM - Chemical Abstract Machine
-
+- [ ] Predicate Transformers
 
 ## Getting Started
 
@@ -34,10 +35,13 @@ stack install semantic-styles\:exe\:semantic-run
 ```
 
 To install the main executable of the library.
+
 Once installed,
+
 ```bash
 semantic-run -h
 ```
+
 will give you the details of what flags and options to use to run programs.
 Some example runs are included in the next section.
 
