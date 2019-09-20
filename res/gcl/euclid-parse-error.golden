@@ -1,0 +1,5 @@
+res/gcl/euclid-parse-error.gcl:5:1:
+  |
+5 | od
+  | ^
+Concurrent variable assignment list lengths do not match

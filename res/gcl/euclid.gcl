@@ -1,0 +1,7 @@
+if x < 0 -> x := 0 - x
+[] y < 0 -> y := 0 - y
+fi
+ ;
+do  x > y -> x   := x - y
+[]  y > x -> x,y := y,x
+od

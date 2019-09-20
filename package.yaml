@@ -1,0 +1,92 @@
+name:                semantic-playground
+version:             0.1.0.2
+github:              "njohnwalker/semantic-playground"
+license:             BSD3
+author:              "Nick Walker"
+maintainer:          "nick.j.walker1@gmail.com"
+copyright:           "2018 Nick Walker"
+
+extra-source-files:
+- README.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/njohnwalker/semantic-playground#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- extra
+- mtl
+- text
+- megaparsec
+- parser-combinators
+- optparse-applicative
+- prettyprinter
+- hashable
+- containers
+- unordered-containers
+- filepath
+- Glob
+- simple-smt
+- streams
+
+
+default-extensions:
+- OverloadedStrings
+- GADTs
+- StandaloneDeriving
+- FlexibleInstances
+- FlexibleContexts
+- MultiParamTypeClasses
+- FunctionalDependencies
+- DeriveGeneric
+- DeriveAnyClass
+- RecordWildCards
+- NamedFieldPuns
+- LambdaCase
+- TypeFamilies
+- BlockArguments
+- PatternSynonyms
+- ViewPatterns
+
+library:
+  source-dirs: src
+
+executables:
+  semantic-run:
+    main:                Main.hs
+    source-dirs:
+      - app
+      - app/lang
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -O2
+    dependencies:
+    - semantic-styles
+
+tests:
+  semantic-plaground-test:
+    main:                Driver.hs
+    source-dirs:
+      - test
+      - app/smt
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - semantic-styles
+    - tasty
+    - tasty-discover
+    - tasty-hspec
+    - tasty-hedgehog
+    - tasty-golden
+    - hspec
+    - hedgehog
