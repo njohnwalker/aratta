@@ -132,7 +132,7 @@ instance Pretty GuardedCommandSet where
   pretty GCS { getCommandList } = case getCommandList of
     [] -> emptyDoc
     [gc] -> pretty gc
-    gc:gcs -> pretty gc 
+    gc:gcs -> pretty gc
            <> line
            <> "[]  "
            <> encloseSep "" "" "[] " (map pretty gcs)
@@ -151,8 +151,8 @@ instance Pretty Statement where
       "if" <+> (pretty gc) <> line
       <> encloseSep "[] " "" "[] " (map pretty gcs) <> line
       <> "fi"
-    
-    Do inv (GCS []) -> "do" <+> (prettyAnn "@ann" inv) <+> "od"
+
+    Do inv (GCS []) -> "do" <+> (prettyAnn "@inv" inv) <+> "od"
     Do inv (GCS gcs) ->
       "do" <+> prettyAnn "@inv" inv <> line
       <> vsep (map (("[]"<+>) .  pretty) gcs)
@@ -170,7 +170,6 @@ renderGCLPretty = renderStrict . layoutSmart defaultGCLLayoutOptions . pretty
   where
     defaultGCLLayoutOptions = LayoutOptions $ AvailablePerLine 60 1.0
 
-
 smartParensBExp = \case
   BConst b -> pretty $ BConst b
   n@(Not _) -> pretty n
@@ -181,5 +180,5 @@ smartParensIExp = \case
   IConst i -> pretty i
   iexp -> parens $ pretty iexp
 
-prettyAnn _ Nothing = mempty
+prettyAnn tag Nothing = tag <> parens mempty
 prettyAnn tag (Just bexp) = tag <> (parens $ pretty bexp)

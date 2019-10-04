@@ -1,5 +1,7 @@
-if (y <= x) ->
+@req(true)
+if y <= x ->
       m := x
-[] (x <= y) ->
+[] x <= y ->
       m := y
 fi
+@ens((x <= m) & (y <= m))

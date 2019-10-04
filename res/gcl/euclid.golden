@@ -1,10 +1,13 @@
-if (0 > x) ->
-      x := (0 - x)
-[] (0 > y) ->
-      y := (0 - y)
+@req(true)
+if 0 > x ->
+      x := 0 - x
+[] 0 > y ->
+      y := 0 - y
 fi ;
-do (x > y) ->
-      x := (x - y)
-[] (y > x) ->
+do @inv()
+[] x > y ->
+      x := x - y
+[] y > x ->
       x, y := y, x
 od
+@ens(x == y)

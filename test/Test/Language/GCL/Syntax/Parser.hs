@@ -21,15 +21,35 @@ import Language.GCL
 
 test_prettyGCL :: IO TestTree
 test_prettyGCL = do
-  srcFilePaths <- findByExtension [".gcl"] "res"
+  srcFilePaths <- findByExtension [".gcl"] "res/gcl"
   return $ testGroup "Parse/UnParse Golden Tests"
-    [ goldenVsStringDiff (takeBaseName filePath) diffCmd (replaceExtension filePath ".golden")
-      ( TL.encodeUtf8
-      . TL.fromStrict
-      . (either Text.pack renderGCLPretty)
-      . parseGCL filePath
-      <$> Text.readFile filePath
-      )
+    [ goldenVsStringDiff
+          (takeBaseName filePath)
+          diffCmd
+          (replaceExtension filePath ".golden")
+          ( TL.encodeUtf8
+            . TL.fromStrict
+            . (either Text.pack renderGCLPretty)
+            . parseGCL filePath
+            <$> Text.readFile filePath
+          )
     | filePath <- srcFilePaths
     ]
   where diffCmd ref new = ["diff", "-u", ref, new]
+
+spec_parseIdentityGCL :: Spec
+spec_parseIdentityGCL =
+  before parseAllGCLSources $ do
+  it "parse . pretty . parse = parse"
+     \pathASTPairs -> do
+       [parseGCL path $ renderGCLPretty ast | (path, ast) <- pathASTPairs]
+       `shouldBe` map (Right . snd) pathASTPairs
+  where
+    parseAllGCLSources = do
+      srcFilePaths <- findByExtension [".gcl"] "res/gcl"
+      srcTexts <- forM srcFilePaths Text.readFile
+      return [ (path, pgm)
+             | (path, Right pgm) <-
+                 map (\(path, text) -> (path, parseGCL path text))
+                 $ zip srcFilePaths srcTexts
+             ]

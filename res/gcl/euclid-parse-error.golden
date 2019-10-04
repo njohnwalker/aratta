@@ -1,5 +1,5 @@
-res/gcl/euclid-parse-error.gcl:5:1:
+res/gcl/euclid-parse-error.gcl:7:1:
   |
-5 | od
+7 | od
   | ^
 Concurrent variable assignment list lengths do not match
