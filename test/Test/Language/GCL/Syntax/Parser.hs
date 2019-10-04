@@ -11,17 +11,19 @@ import qualified Data.Text.IO as Text ( readFile )
 import qualified Data.Text.Lazy as TL ( fromStrict )
 import qualified Data.Text.Lazy.Encoding as TL (encodeUtf8)
 
+
+import Test.Hspec
 import Test.Tasty
-import Test.Tasty.Golden ( goldenVsString, findByExtension )
+import Test.Tasty.Golden ( goldenVsStringDiff, findByExtension )
 
 import Language.GCL
 
 
-test_parseUnparseGCL :: IO TestTree
-test_parseUnparseGCL = do
+test_prettyGCL :: IO TestTree
+test_prettyGCL = do
   srcFilePaths <- findByExtension [".gcl"] "res"
   return $ testGroup "Parse/UnParse Golden Tests"
-    [ goldenVsString (takeBaseName filePath) (replaceExtension filePath ".golden")
+    [ goldenVsStringDiff (takeBaseName filePath) diffCmd (replaceExtension filePath ".golden")
       ( TL.encodeUtf8
       . TL.fromStrict
       . (either Text.pack renderGCLPretty)
@@ -30,4 +32,4 @@ test_parseUnparseGCL = do
       )
     | filePath <- srcFilePaths
     ]
-
+  where diffCmd ref new = ["diff", "-u", ref, new]

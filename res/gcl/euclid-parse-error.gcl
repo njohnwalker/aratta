@@ -1,5 +1,8 @@
+@req(true)
 x := 17 ;
 y := 24 ;
-do  x > y -> x   := x - y
+do @inv()
+[]  x > y -> x   := x - y
 []  y > x -> x,y := y,x,x
 od
+@ens(false)

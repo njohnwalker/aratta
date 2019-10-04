@@ -69,10 +69,10 @@ executables:
     - -with-rtsopts=-N
     - -O2
     dependencies:
-    - semantic-styles
+    - semantic-playground
 
 tests:
-  semantic-plaground-test:
+  semantic-playground-test:
     main:                Driver.hs
     source-dirs:
       - test
@@ -82,7 +82,7 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - semantic-styles
+    - semantic-playground
     - tasty
     - tasty-discover
     - tasty-hspec

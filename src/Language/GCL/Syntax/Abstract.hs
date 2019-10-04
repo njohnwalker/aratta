@@ -18,13 +18,19 @@ import Data.Text.Prettyprint.Doc ( PageWidth(..), LayoutOptions(..)
 
 {-|
 
-gc ::= guard -> statement
-guard ::= bexp
-gcs ::= gc {[] gc}
+block ::=
+  @req(bexp)
+  statement
+  @ens(bexp)
+
 statement ::= statement {; statement}
             | if gcs fi
-            | do gcs od
+            | do @inv(bexp) gcs od
             | var := iexp
+
+gcs ::= gc {[] gc}
+
+gc ::= bexp -> statement
 
 bexp ::= const
        | bexp :&: bexp
@@ -35,6 +41,23 @@ iexp ::= var | const
        | iexp :-: iexp
 
 -}
+
+data Block = Block
+  { req :: Maybe BExp
+  , program :: Statement
+  , ens :: Maybe BExp
+  } deriving (Eq, Ord, Show, Generic)
+
+instance Hashable Block
+
+data Statement
+  = Seq [Statement]
+  | If GuardedCommandSet
+  | Do (Maybe BExp) GuardedCommandSet
+  | [Text] := [IExp]
+  deriving (Eq, Ord, Show, Generic)
+
+instance Hashable Statement
 
 newtype GuardedCommandSet =
   GCS { getCommandList :: [GuardedCommand] }
@@ -50,34 +73,12 @@ data GuardedCommand = GC
 
 instance Hashable GuardedCommand
 
-data Statement
-  = Seq [Statement]
-  | If GuardedCommandSet
-  | Do GuardedCommandSet
-  | [Text] := [IExp]
-  deriving (Eq, Ord, Show, Generic)
-
-instance Hashable Statement
-
 data BExp
   = BConst Bool
   | Not BExp
   | BExp :&: BExp
   | IExp :<=: IExp
   deriving (Eq, Ord, Show, Generic)
-
-
-pattern l :>: r  = Not (l :<=: r)
-pattern l :<: r  = Not (r :<=: l)
-pattern l :>=: r = r :<=: l
-pattern l :+: r  = l :-: (IConst 0 :-: r)
-pattern l :|: r  = Not ( Not l :&: Not r)
-
--- this seems like too much...
-pattern l :==: r <-
-  ((\case ((l :<=: r) :&: (r2 :<=: l2)) -> (l :<=: r) <$ M.guard ((l == l2) && (r == r2))
-          _ -> Nothing) -> Just (l :<=: r))
-  where l :==: r = (l :<=: r) :&: (r :<=: l)
 
 instance Hashable BExp
 
@@ -89,6 +90,19 @@ data IExp
 
 instance Hashable IExp
 
+pattern l :>: r  = Not (l :<=: r)
+pattern l :<: r  = Not (r :<=: l)
+pattern l :>=: r = r :<=: l
+pattern l :+: r  = l :-: (IConst 0 :-: r)
+pattern l :|: r  = Not ( Not l :&: Not r)
+pattern l :=>: r = Not l :|: r
+
+-- this seems like too much...
+pattern l :==: r <-
+  ((\case ((l :<=: r) :&: (r2 :<=: l2)) ->
+            (l :<=: r) <$ M.guard ((l == l2) && (r == r2))
+          _ -> Nothing) -> Just (l :<=: r))
+  where l :==: r = (l :<=: r) :&: (r :<=: l)
 ----------------------------------
 -- Pretty-printing GCL programs --
 
@@ -106,9 +120,22 @@ instance Pretty BExp where
     e1 :==: e2 -> smartParensIExp e1 <> softline <> "==" <> softline <> smartParensIExp e2
     e1 :|: e2 -> smartParensBExp e1 <> softline <> "|" <> softline <> smartParensBExp e2
     e1 :>: e2 -> smartParensIExp e1 <> softline <> ">" <> softline <> smartParensIExp e2
-    Not bexp -> parens $ "~" <> pretty bexp 
+    Not bexp -> "~" <> smartParensBExp bexp
     e1 :&: e2 -> smartParensBExp e1 <> softline <> "&" <> softline <> smartParensBExp e2
-    e1 :<=: e2 -> smartParensIExp e1 <> softline <> "<=" <> smartParensIExp e2
+    e1 :<=: e2 -> smartParensIExp e1 <> softline <> "<=" <> softline <> smartParensIExp e2
+
+instance Pretty GuardedCommand where
+  pretty GC { guard, statement }
+    = align (pretty guard <+> "->" <> nest 3 (line <> pretty statement))
+
+instance Pretty GuardedCommandSet where
+  pretty GCS { getCommandList } = case getCommandList of
+    [] -> emptyDoc
+    [gc] -> pretty gc
+    gc:gcs -> pretty gc 
+           <> line
+           <> "[]  "
+           <> encloseSep "" "" "[] " (map pretty gcs)
 
 instance Pretty Statement where
   pretty = \case
@@ -125,27 +152,20 @@ instance Pretty Statement where
       <> encloseSep "[] " "" "[] " (map pretty gcs) <> line
       <> "fi"
     
-    Do (GCS []) -> "do od"
-    Do (GCS (gc:gcs)) ->
-      "do" <+> (pretty gc) <> line
-      <> encloseSep "[] " "" "[] " (map pretty gcs) <> line
-      <> "od"
+    Do inv (GCS []) -> "do" <+> (prettyAnn "@ann" inv) <+> "od"
+    Do inv (GCS gcs) ->
+      "do" <+> prettyAnn "@inv" inv <> line
+      <> vsep (map (("[]"<+>) .  pretty) gcs)
+      <> line <> "od"
 
-instance Pretty GuardedCommand where
-  pretty GC { guard, statement }
-    = align (pretty guard <+> "->" <> nest 3 (line <> pretty statement))
-
-instance Pretty GuardedCommandSet where
-  pretty GCS { getCommandList } = case getCommandList of
-    [] -> emptyDoc
-    [gc] -> pretty gc
-    gc:gcs -> pretty gc 
-           <> line
-           <> "[]  "
-           <> encloseSep "" "" "[] " (map pretty gcs)
+instance Pretty Block where
+  pretty Block {req, program, ens} =
+    "@req(" <> pretty req <> ")" <> line
+    <> pretty program <> line
+    <> "@ens(" <> pretty ens <> ")" <> line
 
 -- | Render GCL AST to Text
-renderGCLPretty :: Statement -> Text
+renderGCLPretty :: Block -> Text
 renderGCLPretty = renderStrict . layoutSmart defaultGCLLayoutOptions . pretty
   where
     defaultGCLLayoutOptions = LayoutOptions $ AvailablePerLine 60 1.0
@@ -153,9 +173,13 @@ renderGCLPretty = renderStrict . layoutSmart defaultGCLLayoutOptions . pretty
 
 smartParensBExp = \case
   BConst b -> pretty $ BConst b
+  n@(Not _) -> pretty n
   bexp -> parens $ pretty bexp
 
 smartParensIExp = \case
   Var var -> pretty var
   IConst i -> pretty i
   iexp -> parens $ pretty iexp
+
+prettyAnn _ Nothing = mempty
+prettyAnn tag (Just bexp) = tag <> (parens $ pretty bexp)

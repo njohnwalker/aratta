@@ -6,7 +6,6 @@ module Language.GCL.Syntax.Lexer
   , boolean
   , parentheses
   , ifBlock
-  , doBlock
   , identifier
   , arrow
   , semicolon
@@ -23,6 +22,11 @@ module Language.GCL.Syntax.Lexer
   , greaterthan
   , lessthan
   , comma
+  , lparen
+  , rparen
+  , reqTag
+  , ensTag
+  , invTag
   )
 where
 
@@ -61,10 +65,6 @@ parentheses = between (symbol "(") $ symbol ")"
 ifBlock :: Parser a -> Parser a
 ifBlock = between (symbol "if") $ symbol "fi"
 
-doBlock :: Parser a -> Parser a
-doBlock = between (symbol "do") $ symbol "od"
-
-
 identifier :: Parser Text
 identifier = lexeme $ try $ p >>= check
   where
@@ -91,6 +91,13 @@ arrow     = symbol "->"
 equal     = symbol "=="
 greaterthan = symbol ">"
 lessthan    = symbol "<"
+
+lparen = symbol "("
+rparen = symbol ")"
+reqTag = symbol "@req"
+ensTag = symbol "@ens"
+invTag = symbol "@inv"
+
 -------------
 -- Helpers --
 rword :: Text -> Parser ()

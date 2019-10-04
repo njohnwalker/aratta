@@ -1,7 +1,13 @@
+@req(true)
+//x := m ;
+//y := n ;
 if x < 0 -> x := 0 - x
 [] y < 0 -> y := 0 - y
 fi
  ;
-do  x > y -> x   := x - y
+do @inv()
+[]  x > y -> x   := x - y
 []  y > x -> x,y := y,x
 od
+// cannot express tight post condition with this logic 
+@ens(x == y)

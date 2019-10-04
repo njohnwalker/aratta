@@ -5,7 +5,6 @@
 module Test.Language.GCL.Gen
 where
 
-
 import Hedgehog ( Gen )
 import qualified Hedgehog as Hog hiding ( Var, map )
 import qualified Hedgehog.Gen as Gen hiding ( map )
@@ -30,8 +29,6 @@ int = Gen.choice
   , Gen.scale reduceSize $ (:-:) <$> int <*> int
   ]
 
-
 reduceSize :: Hog.Size -> Hog.Size
-reduceSize (Hog.Size 0) = Hog.Size 0
 reduceSize (Hog.Size n) | n > 0 = Hog.Size $ n - 1
                         | otherwise = Hog.Size n

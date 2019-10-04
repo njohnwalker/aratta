@@ -1,7 +1,8 @@
 module Language.GCL.Syntax.Parser
   ( parseGCL
   , programParser
-  , gcs
+  , ifGcs
+  , doGcs
   , gc
   , stmt
   , iExp
@@ -19,6 +20,7 @@ import Text.Megaparsec
        ( Parsec, try, notFollowedBy
        , many, between, eof, (<|>)
        , sepBy, parse, errorBundlePretty
+       , optional
        )
 
 import Control.Monad.Combinators.Expr
@@ -30,23 +32,22 @@ type Parser = Parsec Void Text
 
 ------------------------
 -- Source File Parser --
-parseGCL :: String -> Text -> Either String Statement
+parseGCL :: String -> Text -> Either String Block
 parseGCL file input = case parse programParser file input of
   Left  err -> Left $ errorBundlePretty err
   Right cSet -> Right cSet
 
----------------------
--- Guarded Commands and Command Sets --
+programParser :: Parser Block
+programParser = between space eof block
 
-programParser :: Parser Statement
-programParser = between space eof stmt
-
-gcs :: Parser GuardedCommandSet
-gcs =  GCS <$> sepBy gc square
-
-gc :: Parser GuardedCommand
-gc = GC <$> bExp <* arrow <*> stmt
-
+-----------
+-- Block --
+block :: Parser Block
+block = Block <$> requires <*> stmt <*> ensures
+  where
+    requires, ensures :: Parser (Maybe BExp)
+    requires = reqTag *> annotation
+    ensures = ensTag *> annotation
 ----------------
 -- Statements --
 
@@ -67,9 +68,27 @@ assignStmt = do
   if length varList /= length expList
     then fail "Concurrent variable assignment list lengths do not match"
     else return $ varList := expList
-  
-doStmt = Do <$> doBlock gcs
-ifStmt = If <$> ifBlock gcs
+
+doStmt = do
+  _    <- symbol "do"
+  inv  <- invTag *> annotation
+  body <- doGcs
+  _    <- symbol "od"
+  return $ Do inv body
+
+ifStmt = If <$> ifBlock ifGcs
+
+---------------------
+-- Guarded Commands and Command Sets --
+
+ifGcs :: Parser GuardedCommandSet
+ifGcs = GCS <$> sepBy gc square
+
+doGcs :: Parser GuardedCommandSet
+doGcs = GCS <$> many (square *> gc)  
+
+gc :: Parser GuardedCommand
+gc = GC <$> bExp <* arrow <*> stmt
 
 -----------------
 -- Expressions --
@@ -121,3 +140,6 @@ gteRExp = (:>=:) <$> try (iExp <* gequal) <*> iExp
 eRExp   = (:==:) <$> try (iExp <* equal) <*> iExp
 ltRExp  = (:<:) <$> try (iExp <* lessthan) <*> iExp
 gtRExp  = (:>:) <$> try (iExp <* greaterthan) <*> iExp
+
+annotation :: Parser (Maybe BExp)
+annotation = between lparen rparen $ optional bExp

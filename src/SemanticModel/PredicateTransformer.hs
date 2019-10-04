@@ -1,11 +1,22 @@
+
 module SemanticModel.PredicateTransformer
 where
+
+import Data.String
 
 import GHC.Natural
 import SimpleSMT ( SExpr )
 import Data.Text.Prettyprint.Doc
 
 
+
+-- | Class of weakest precondition calculable languages
+class WeakestPre lang where
+  data Predicate lang :: *
+
+  wp :: lang -> Predicate lang -> Predicate lang
+
+{--
 class WeakestPreVerification lang where
   data LogicExp lang :: *
   data BasicBlock lang :: *
@@ -40,3 +51,4 @@ class WeakestPreVerification lang where
         <> pretty (getCode block)
         <> "@Post:" <+> pretty (getPost block)
         
+--}
