@@ -32,18 +32,18 @@ type Parser = Parsec Void Text
 
 ------------------------
 -- Source File Parser --
-parseGCL :: String -> Text -> Either String Block
+parseGCL :: String -> Text -> Either String GCLProgram
 parseGCL file input = case parse programParser file input of
   Left  err -> Left $ errorBundlePretty err
   Right cSet -> Right cSet
 
-programParser :: Parser Block
+programParser :: Parser GCLProgram
 programParser = between space eof block
 
 -----------
--- Block --
-block :: Parser Block
-block = Block <$> requires <*> stmt <*> ensures
+-- GCLProgram --
+block :: Parser GCLProgram
+block = GCLProgram <$> requires <*> stmt <*> ensures
   where
     requires, ensures :: Parser (Maybe BExp)
     requires = reqTag *> annotation

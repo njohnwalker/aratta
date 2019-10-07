@@ -1,54 +1,39 @@
-
 module SemanticModel.PredicateTransformer
 where
 
-import Data.String
-
-import GHC.Natural
+import Control.Monad.Reader ( Reader )
 import SimpleSMT ( SExpr )
-import Data.Text.Prettyprint.Doc
 
+-- | Class of languages with predicate transformer semantics
+class PredicateTransformer lang where
 
+  -- | Predicate type
+  data Predicate lang
 
--- | Class of weakest precondition calculable languages
-class WeakestPre lang where
-  data Predicate lang :: *
+  -- | Variable type
+  data Variable lang
 
-  wp :: lang -> Predicate lang -> Predicate lang
+  -- | Expression (of variable assignment) type
+  data Expression lang
 
-{--
-class WeakestPreVerification lang where
-  data LogicExp lang :: *
-  data BasicBlock lang :: *
+  -- | Basic block type
+  data BasicBlock lang
 
-  wp :: lang -> LogicExp lang
+  -- | Generate all basic path verification conditions from a program
+  --   parameterised on predicate transformer
+  getBasicPathVC
+    :: (BasicBlock lang -> Predicate lang -> Predicate lang)
+    -> lang
+    -> Reader (Predicate lang) [Predicate lang]
 
-  toVerificationCondition :: LogicExp lang -> SExpr
+  -- | Generate SExpr for smt solver from predicate
+  predicateToSExpr :: Predicate lang -> SExpr
 
-  toBasicBlocks :: lang -> [BasicBlock lang]
+  ----------------------------
+  -- Predicate Transformers --
 
-  getPre :: BasicBlock lang -> LogicExp lang
+  -- | Calculate the Weakest Precondition of a block, given a postcondition
+  wp :: BasicBlock lang -> Predicate lang -> Predicate lang
 
-  getCode :: BasicBlock lang -> lang
-
-  getPost :: BasicBlock lang -> LogicExp lang
-
-  calculateVC :: BasicBlock lang -> LogicExp lang -> LogicExp lang
-  
-  displayUnsat
-    :: ( Pretty lang
-       , Pretty (LogicExp lang)
-       )
-    => BasicBlock lang  -- ^ refuted basic block
-    -> LogicExp lang -- ^ Candidate invariant that is unsatisfiable
-    -> IO ()
-  displayUnsat block vc =
-    putStrLn $ show
-        $ "Invalid Verification Condition:" <> line 
-        <> nest 4 (pretty vc)
-        <> nest (-4) "While checking :" <> line
-        <> "@Pre:" <+> pretty (getPre block)
-        <> pretty (getCode block)
-        <> "@Post:" <+> pretty (getPost block)
-        
---}
+  -- | Calculate the Strongest Postcondition of a block, given a precondition
+  sp :: BasicBlock lang -> Predicate lang -> Predicate lang

@@ -42,13 +42,13 @@ iexp ::= var | const
 
 -}
 
-data Block = Block
+data GCLProgram = GCLProgram
   { req :: Maybe BExp
   , program :: Statement
   , ens :: Maybe BExp
   } deriving (Eq, Ord, Show, Generic)
 
-instance Hashable Block
+instance Hashable GCLProgram
 
 data Statement
   = Seq [Statement]
@@ -158,14 +158,14 @@ instance Pretty Statement where
       <> vsep (map (("[]"<+>) .  pretty) gcs)
       <> line <> "od"
 
-instance Pretty Block where
-  pretty Block {req, program, ens} =
+instance Pretty GCLProgram where
+  pretty GCLProgram {req, program, ens} =
     "@req(" <> pretty req <> ")" <> line
     <> pretty program <> line
     <> "@ens(" <> pretty ens <> ")" <> line
 
 -- | Render GCL AST to Text
-renderGCLPretty :: Block -> Text
+renderGCLPretty :: GCLProgram -> Text
 renderGCLPretty = renderStrict . layoutSmart defaultGCLLayoutOptions . pretty
   where
     defaultGCLLayoutOptions = LayoutOptions $ AvailablePerLine 60 1.0

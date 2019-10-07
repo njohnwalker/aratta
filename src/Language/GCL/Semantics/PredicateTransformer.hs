@@ -2,6 +2,6 @@ module Language.GCL.Semantics.PredicateTransformer
 where
 
 import Language.GCL.Syntax.Abstract
+import Language.GCL.Syntax.Parser (bExp)
 
-wp :: Statement -> BExp -> BExp
-wp = undefined
+import SemanticModel.PredicateTransformer
