@@ -14,13 +14,12 @@ data BasicPath
   | Substitute Text IExp
   
 getBasicPathVC pt GCLProgram {req, program, ens} = undefined
-  
+
+wp :: BasicPath -> BExp -> BExp
 wp = \case
   Assume p -> (p :=>:)
   Substitute v e -> (substitute v e) 
-  -- Sequence stmts -> foldl  
-     
-sp = undefined
+  Sequence stmts -> foldl (\f ins -> f . wp ins) id stmts
 
 -------------
 -- helpers --

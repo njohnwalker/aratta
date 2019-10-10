@@ -82,6 +82,8 @@ data BExp
   | BExp :&: BExp
   | IExp :<=: IExp
   deriving (Eq, Ord, Show, Generic)
+infixr 3 :&:
+infix 4 :<=:
 
 data IExp
   = Var Text
@@ -89,6 +91,15 @@ data IExp
   | IExp :-: IExp
   deriving (Eq, Ord, Show, Generic)
 
+infixl 6 :-:
+
+instance Num IExp where
+  IConst i  + IConst j = IConst $ i + j
+  IConst i  * IConst j = IConst $ i * j
+  IConst i  - IConst j = IConst $ i - j
+  abs (IConst i) = IConst $ abs i
+  signum (IConst i) = IConst $ signum i
+  fromInteger = IConst
 
 deriving instance Data BExp
 deriving instance Data IExp
@@ -103,25 +114,36 @@ instance Plated IExp where
 deriving instance Hashable BExp
 deriving instance Hashable IExp
 
-makePrisms ''IExp
-makePrisms ''BExp
+-- makePrisms ''IExp
+-- makePrisms ''BExp
 
+infix 4 :>:, :<:, :>=:
 pattern l :>: r  = Not (l :<=: r)
 pattern l :<: r  = Not (r :<=: l)
 pattern l :>=: r = r :<=: l
+
+infixl 6 :+:
 pattern l :+: r  = l :-: (IConst 0 :-: r)
+
+infixr 2 :=>:, :|:
 pattern l :|: r  = Not ( Not l :&: Not r)
 pattern l :=>: r = Not l :|: r
 
+
 -- this seems like too much...
+infix 4 :==:
 pattern l :==: r <-
   ((\case ((l :<=: r) :&: (r2 :<=: l2)) ->
             (l :<=: r) <$ M.guard ((l == l2) && (r == r2))
           _ -> Nothing) -> Just (l :<=: r))
   where l :==: r = (l :<=: r) :&: (r :<=: l)
+
+
+
+
+
 ----------------------------------
 -- Pretty-printing GCL programs --
-
 instance Pretty IExp where
   pretty = \case
     Var txt -> pretty txt
