@@ -2,6 +2,9 @@ module Language.GCL.Syntax.Abstract where
 
 import qualified Control.Monad as M ( guard )
 
+import Data.Data
+
+import Control.Lens ( Plated, plate, makePrisms )
 import Data.Text ( Text )
 import GHC.Generics
 import Data.Hashable
@@ -80,15 +83,28 @@ data BExp
   | IExp :<=: IExp
   deriving (Eq, Ord, Show, Generic)
 
-instance Hashable BExp
-
 data IExp
   = Var Text
   | IConst Integer
   | IExp :-: IExp
   deriving (Eq, Ord, Show, Generic)
 
-instance Hashable IExp
+
+deriving instance Data BExp
+deriving instance Data IExp
+
+instance Plated BExp
+
+
+instance Plated IExp where
+  plate f (i1 :-: i2) = (:-:) <$> f i1 <*> f i2
+  plate _ t = pure t 
+
+deriving instance Hashable BExp
+deriving instance Hashable IExp
+
+makePrisms ''IExp
+makePrisms ''BExp
 
 pattern l :>: r  = Not (l :<=: r)
 pattern l :<: r  = Not (r :<=: l)

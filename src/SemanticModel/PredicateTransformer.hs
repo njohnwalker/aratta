@@ -8,13 +8,13 @@ import SimpleSMT ( SExpr )
 class PredicateTransformer lang where
 
   -- | Predicate type
-  data Predicate lang
+  type Predicate lang
 
   -- | Variable type
-  data Variable lang
+  type Variable lang
 
   -- | Expression (of variable assignment) type
-  data Expression lang
+  type Expression lang
 
   -- | Basic block type
   data BasicBlock lang
@@ -25,9 +25,6 @@ class PredicateTransformer lang where
     :: (BasicBlock lang -> Predicate lang -> Predicate lang)
     -> lang
     -> Reader (Predicate lang) [Predicate lang]
-
-  -- | Generate SExpr for smt solver from predicate
-  predicateToSExpr :: Predicate lang -> SExpr
 
   ----------------------------
   -- Predicate Transformers --

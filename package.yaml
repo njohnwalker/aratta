@@ -22,6 +22,7 @@ dependencies:
 - base >= 4.7 && < 5
 - extra
 - mtl
+- lens
 - text
 - megaparsec
 - parser-combinators
@@ -46,6 +47,7 @@ default-extensions:
 - FunctionalDependencies
 - DeriveGeneric
 - DeriveAnyClass
+- DeriveDataTypeable
 - RecordWildCards
 - NamedFieldPuns
 - LambdaCase
@@ -53,6 +55,7 @@ default-extensions:
 - BlockArguments
 - PatternSynonyms
 - ViewPatterns
+- TemplateHaskell
 
 library:
   source-dirs: src
