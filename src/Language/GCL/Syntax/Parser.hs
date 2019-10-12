@@ -99,8 +99,9 @@ iExp = makeExprParser iTerm iOpTable
 
 iOpTable :: [[Operator Parser IExp]]
 iOpTable
-  = [ [ InfixR $ (:-:) <$ minus ]
-    , [ InfixR $ (:+:) <$ plus ]
+  = [ [ InfixL $ (:+:) <$ plus
+      , InfixL $ (:-:) <$ minus
+      ]
     ]
 
 iTerm :: Parser IExp
