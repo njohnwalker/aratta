@@ -10,7 +10,7 @@ import qualified Hedgehog as Hog hiding ( Var, map )
 import qualified Hedgehog.Gen as Gen hiding ( map )
 import qualified Hedgehog.Range as Range
 
-import Data.Text (Text,  pack )
+import Data.Text (Text,  pack, isPrefixOf )
 
 import Language.GCL
 
@@ -34,28 +34,7 @@ reduceSize (Hog.Size n) | n > 0 = Hog.Size $ n - 1
                         | otherwise = Hog.Size n
 
 variable :: Gen Text
-variable = Gen.text (Range.linear 3 10) Gen.lower
-
--- data MockSubstitution = MockSub
---   { exp :: BExp
---   , exp' :: BExp
---   , var :: Text
---   , sub :: IExp
---   }
-
--- substitutePairs :: Gen MockSubstitution
--- substitutePairs =  do
---   arbInt <- int
---   arbVar <- variable
---   (exp, expAns) <- sustitutePairsBExp arbInt arbVar
---   return $ MockSub exp expAns arbVar arbInt
---   where
---     substitutePairsIExp :: Text -> IExp -> Gen (IExp, IExp)
---     substitutePairsIExp var int =
---       Gen.element [ (int, Var var)
---                   , BConst <$> Gen.bool_
---                   , Gen.scale reduceSize $  (:&:) <$> bool <*> bool
---                   , Gen.scale reduceSize $ (:<=:) <$> int  <*> int
---                   , Gen.scale reduceSize $   Not  <$> bool
---                   ]
-       
+variable = do
+  word <- Gen.text (Range.linear 3 10) Gen.lower
+  if isRword word then variable else return word
+  where isRword word = and [isPrefixOf rword word  | rword <- rwords]

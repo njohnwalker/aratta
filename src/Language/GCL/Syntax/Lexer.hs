@@ -27,6 +27,7 @@ module Language.GCL.Syntax.Lexer
   , reqTag
   , ensTag
   , invTag
+  , rwords
   )
 where
 
@@ -107,4 +108,7 @@ rword w
   *> notFollowedBy PChar.alphaNumChar
 
 rwords :: [Text]
-rwords = [ "if", "fi", "do", "od", "true", "false"]
+rwords = [ "if", "fi", "do", "od", "true", "false"
+         -- probable (short) SMTLIB reserved words
+         -- anything that fails smt parse in generated tests
+         , "and"]
