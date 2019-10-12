@@ -1,5 +1,6 @@
 module Language.GCL.Syntax.Parser
-  ( parseGCL
+  ( readAndParseGCL
+  , parseGCL
   , programParser
   , ifGcs
   , doGcs
@@ -12,6 +13,7 @@ where
 import           Data.Void
 import           Data.Text ( Text )
 import qualified Data.Text as T
+import qualified Data.Text.IO as T.IO ( readFile )
 
 import Prelude hiding (and, not, or)
 
@@ -32,6 +34,11 @@ type Parser = Parsec Void Text
 
 ------------------------
 -- Source File Parser --
+
+readAndParseGCL :: FilePath -> IO (Either String GCLProgram)
+readAndParseGCL filepath
+  = parseGCL filepath <$> T.IO.readFile filepath
+
 parseGCL :: String -> Text -> Either String GCLProgram
 parseGCL file input = case parse programParser file input of
   Left  err -> Left $ errorBundlePretty err

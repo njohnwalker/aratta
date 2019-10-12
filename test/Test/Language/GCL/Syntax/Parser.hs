@@ -30,8 +30,7 @@ test_prettyGCL = do
           ( TL.encodeUtf8
             . TL.fromStrict
             . (either Text.pack renderGCLPretty)
-            . parseGCL filePath
-            <$> Text.readFile filePath
+            <$> readAndParseGCL filePath
           )
     | filePath <- srcFilePaths
     ]

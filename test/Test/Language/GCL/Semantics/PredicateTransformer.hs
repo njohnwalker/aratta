@@ -11,9 +11,8 @@ import Language.GCL
 -- Basic Path Tests --
 spec_trivial_basicpath :: Spec
 spec_trivial_basicpath = 
-  it "basic path of program with no branches or loops" do
-  ePgm  <- parseGCL "res/gcl/trivial-basicpath.gcl"
-           <$> T.IO.readFile "res/gcl/trivial-basicpath.gcl"
+  it "VC of program with no branches or loops" do
+  ePgm  <- readAndParseGCL "res/gcl/trivial-basicpath.gcl"
   case ePgm of
     Left err -> err `shouldBe` "a Correct Parse"
     Right pgm ->
@@ -23,6 +22,21 @@ spec_trivial_basicpath =
            :&: 30 :+: 14 :-: x :<=: z :-: 7
            :&: 30 :+: 14 :-: x :<=: z
            :&: z :<=: 10]
+         
+spec_max_basicpaths :: Spec
+spec_max_basicpaths =
+  it "VC of max program (only branches, no loops)" do
+  ePgm  <- readAndParseGCL "res/gcl/max.gcl"
+  case ePgm of
+    Left err -> err `shouldBe` "a Correct Parse"
+    Right pgm ->
+      specifyInvariant (BConst False) (getBasicPathVCs pgm) `shouldMatchList`
+      let [x,y,m] = map Var ["x","y","m"]
+      in [ x :>=: y :=>: x :>=: x :&: x :>=: y
+         , y :>=: x :=>: y :>=: x :&: y :>=: y
+         , Not (x :>=: y) :&: Not (y :>=: x) :=>: m :>=: x :&: m :>=: y
+         ]
+  
 
 -----------------------
 -- Weakest Pre tests --
