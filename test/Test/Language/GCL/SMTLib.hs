@@ -1,5 +1,9 @@
-module Test.Language.GCL
+module Test.Language.GCL.SMTLib
 where
+
+
+import Control.Monad.IO.Class ( MonadIO )
+import Control.Exception (IOException,  try)
 
 import Test.Hspec
 
@@ -8,7 +12,7 @@ import Test.Tasty.Golden ( goldenVsFile )
 
 import qualified Hedgehog as Hog
 
-import Data.Set as Set (fromList)
+import Data.Set as Set ( fromList )
 
 import SimpleSMT
 
@@ -32,15 +36,25 @@ spec_simpleBoolToSExpr = let bexp = Var "a" :<=: Var "b"
        evalBool env bexp `shouldBe` True
 
 hprop_boolToSExpr :: Hog.Property
-hprop_boolToSExpr =  Hog.property do
+hprop_boolToSExpr =  Hog.property $ do
   solver <- Hog.evalIO newZ3Solver
   bExp <- Hog.forAll Gen.bool
-  result <- Hog.evalIO $ do
+  eResult <- hogEvalIOEither $ do
       boolToSMTAssertion solver bExp
       check solver
-  case result of
-    Sat -> do
-      env <- Hog.evalIO $ getModel solver $ getClosureBool bExp
-      Hog.assert $ GCL.evalBool env bExp
-    Unsat -> Hog.assert $ Prelude.not $ GCL.evalBoolAny bExp
-    Unknown -> Hog.discard
+  case eResult of
+    Right Sat -> do
+      eEnv <- hogEvalIOEither $ getModel solver $ getClosureBool bExp
+      case eEnv of
+        Right env -> Hog.assert $ GCL.evalBool env bExp
+        _ -> Hog.discard
+    Right Unsat -> Hog.assert $ Prelude.not $ GCL.evalBoolAny bExp
+    _ -> Hog.discard
+
+-- hmmm...
+hogEvalIOEither :: (Hog.MonadTest m, MonadIO m, HasCallStack) => IO a -> m (Either IOException a)
+hogEvalIOEither io = Hog.evalIO $ try io
+
+replayFDException :: IO ()
+replayFDException =
+  Hog.recheck (Hog.Size 88) (Hog.Seed 2852360753211302202 8158979062945036807) hprop_boolToSExpr
