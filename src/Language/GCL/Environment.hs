@@ -34,9 +34,6 @@ arbitraryEnv = undefined
 integerStream :: (Num a, Ord a) => Stream a
 integerStream = Stream.iterate (\x-> if x < 0 then x * (-1) + 1 else -(x+1)) 0
 
---environmentStream :: Integral n => n -> Stream Env
---environmentStream n = Prelude.map (const integerStream) [0..n] 
-
 tails = Stream.iterate Stream.tail
 
 makeAnyEnvironment :: Set Text -> Env

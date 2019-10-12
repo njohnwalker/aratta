@@ -1,10 +1,31 @@
 module Test.Language.GCL.Semantics.PredicateTransformer
 where
 
+import qualified Data.Text.IO as T.IO
+
 import Test.Hspec
 
 import Language.GCL
 
+----------------------
+-- Basic Path Tests --
+spec_trivial_basicpath :: Spec
+spec_trivial_basicpath = 
+  it "basic path of program with no branches or loops" do
+  ePgm  <- parseGCL "res/gcl/trivial-basicpath.gcl"
+           <$> T.IO.readFile "res/gcl/trivial-basicpath.gcl"
+  case ePgm of
+    Left err -> err `shouldBe` "a Correct Parse"
+    Right pgm ->
+      specifyInvariant (BConst False) (getBasicPathVCs pgm) `shouldBe`
+      let [x,y,z] = map Var ["x","y","z"]
+      in [x :<=: y :=>: z :<=: z :-: 7
+           :&: 30 :+: 14 :-: x :<=: z :-: 7
+           :&: 30 :+: 14 :-: x :<=: z
+           :&: z :<=: 10]
+
+-----------------------
+-- Weakest Pre tests --
 spec_wpAssume :: Spec
 spec_wpAssume =
   it "wp of assume statement is implication" do
@@ -17,14 +38,13 @@ spec_wpSubstitute =
       exp' = (10 :<=: 10) :&: BConst True
   wp (Substitute "x" $ 10) exp `shouldBe` exp'
 
-
 spec_wpSequence :: Spec
 spec_wpSequence =
   it "wp of a sequence of statements is the composition of the statements" do
   let x = Var "x"
       y = Var "y"
       z = Var "z"
-      path = Sequence
+      path =
         [ Assume $ x :<=: y
         , Substitute "y" $ 30 :+: 14 :-: x
         , Substitute "x" 17
@@ -38,8 +58,7 @@ spec_wpSequence =
           :&: 30 :+: 14 :-: x :<=: z :-: 7
           :&: 30 :+: 14 :-: x :<=: z
           :&: z :<=: 10
-  wp path ensures `shouldBe` weakestPrecondition
-
+  wpSeq path ensures `shouldBe` weakestPrecondition
 
 ------------------------
 -- Substitution Tests --
