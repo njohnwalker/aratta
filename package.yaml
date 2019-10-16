@@ -36,7 +36,6 @@ dependencies:
 - simple-smt
 - streams
 
-
 default-extensions:
 - OverloadedStrings
 - GADTs
@@ -73,6 +72,8 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     - -O2
+    - -Werror
+    - -Wincomplete-patterns
     dependencies:
     - semantic-playground
 

@@ -6,7 +6,7 @@ import Data.Data
 
 import Control.Lens ( Plated, plate, makePrisms )
 import Data.Text ( Text )
-import GHC.Generics
+import GHC.Generics hiding ( (:*:) )
 import Data.Hashable
 
 import Data.Text.Prettyprint.Doc.Render.Text ( renderStrict )
@@ -89,33 +89,34 @@ data IExp
   = Var Text
   | IConst Integer
   | IExp :-: IExp
+  | IExp :*: IExp
+  | IExp :/: IExp
+  | IExp :%: IExp
   deriving (Eq, Ord, Show, Generic)
 
 infixl 6 :-:
 
 instance Num IExp where
-  IConst i  + IConst j = IConst $ i + j
-  IConst i  * IConst j = IConst $ i * j
-  IConst i  - IConst j = IConst $ i - j
+  i + j = i :+: j
+  i * j = i :*: j
+  i - j = i :-: j
+
   abs (IConst i) = IConst $ abs i
+  abs _ = error "abs: not defined for expressions"
+
   signum (IConst i) = IConst $ signum i
+  signum _ = error "signum: not defined for expressions"
+
   fromInteger = IConst
 
 deriving instance Data BExp
 deriving instance Data IExp
 
 instance Plated BExp
-
-
-instance Plated IExp where
-  plate f (i1 :-: i2) = (:-:) <$> f i1 <*> f i2
-  plate _ t = pure t 
+instance Plated IExp
 
 deriving instance Hashable BExp
 deriving instance Hashable IExp
-
--- makePrisms ''IExp
--- makePrisms ''BExp
 
 infix 4 :>:, :<:, :>=:
 pattern l :>: r  = Not (l :<=: r)
@@ -129,7 +130,6 @@ infixr 2 :=>:, :|:
 pattern l :|: r  = Not ( Not l :&: Not r)
 pattern l :=>: r = Not l :|: r
 
-
 -- this seems like too much...
 infix 4 :==:
 pattern l :==: r <-
@@ -138,29 +138,37 @@ pattern l :==: r <-
           _ -> Nothing) -> Just (l :<=: r))
   where l :==: r = (l :<=: r) :&: (r :<=: l)
 
-
-
-
-
 ----------------------------------
 -- Pretty-printing GCL programs --
+
+prettyIntBinop :: Doc ann -> IExp -> IExp -> Doc ann
+prettyIntBinop op e1 e2 =
+  smartParensIExp e1 <> softline <> op <> softline <> smartParensIExp e2
+
+prettyBoolBinop :: Doc ann -> BExp -> BExp -> Doc ann
+prettyBoolBinop op e1 e2 =
+  smartParensBExp e1 <> softline <> op <> softline <> smartParensBExp e2
+
 instance Pretty IExp where
   pretty = \case
     Var txt -> pretty txt
     IConst int -> pretty int
-    e1 :+: e2 -> smartParensIExp e1 <> softline <> "+" <> softline <> smartParensIExp e2
-    e1 :-: e2 -> smartParensIExp e1 <> softline <> "-" <> softline <> smartParensIExp e2
+    e1 :+: e2 -> prettyIntBinop "+" e1 e2
+    e1 :-: e2 -> prettyIntBinop "-" e1 e2
+    e1 :*: e2 -> prettyIntBinop "*" e1 e2
+    e1 :%: e2 -> prettyIntBinop "%" e1 e2
+    e1 :/: e2 -> prettyIntBinop "/" e1 e2
 
 instance Pretty BExp where
-  pretty = \case
+  pretty = \case -- caution, case order matters (see pattern synonyms)
     BConst True -> "true"
     BConst False -> "false"
-    e1 :==: e2 -> smartParensIExp e1 <> softline <> "==" <> softline <> smartParensIExp e2
-    e1 :|: e2 -> smartParensBExp e1 <> softline <> "|" <> softline <> smartParensBExp e2
-    e1 :>: e2 -> smartParensIExp e1 <> softline <> ">" <> softline <> smartParensIExp e2
+    e1 :==: e2 -> prettyIntBinop "==" e1 e2
+    e1 :|: e2  -> prettyBoolBinop "|" e1 e2
+    e1 :>: e2  -> prettyIntBinop ">" e1 e2
     Not bexp -> "~" <> smartParensBExp bexp
-    e1 :&: e2 -> smartParensBExp e1 <> softline <> "&" <> softline <> smartParensBExp e2
-    e1 :<=: e2 -> smartParensIExp e1 <> softline <> "<=" <> softline <> smartParensIExp e2
+    e1 :&: e2  -> prettyBoolBinop "&" e1 e2
+    e1 :<=: e2 -> prettyIntBinop "<=" e1 e2
 
 instance Pretty GuardedCommand where
   pretty GC { guard, statement }
@@ -180,25 +188,26 @@ instance Pretty Statement where
 
     Seq stmts -> vsep $ punctuate (space <> semi) $ map pretty stmts
 
-    var := exp -> (encloseSep emptyDoc emptyDoc (comma <> space) $ map pretty var)
-              <+> ":="
-              <+> (encloseSep emptyDoc emptyDoc (comma <> space) $ map pretty exp)
+    var := exp
+      -> (encloseSep emptyDoc emptyDoc (comma <> space) $ map pretty var)
+      <+> ":="
+      <+> (encloseSep emptyDoc emptyDoc (comma <> space) $ map pretty exp)
 
     If (GCS []) -> "if fi"
-    If (GCS (gc:gcs)) ->
-      "if" <+> (pretty gc) <> line
+    If (GCS (gc:gcs))
+      -> "if" <+> (pretty gc) <> line
       <> encloseSep "[] " "" "[] " (map pretty gcs) <> line
       <> "fi"
 
     Do inv (GCS []) -> "do" <+> (prettyAnn "@inv" inv) <+> "od"
-    Do inv (GCS gcs) ->
-      "do" <+> prettyAnn "@inv" inv <> line
-      <> vsep (map (("[]"<+>) .  pretty) gcs)
-      <> line <> "od"
+    Do inv (GCS gcs)
+      -> "do" <+> prettyAnn "@inv" inv <> line
+      <> vsep (map (("[]"<+>) .  pretty) gcs) <> line
+      <> "od"
 
 instance Pretty GCLProgram where
-  pretty GCLProgram {req, program, ens} =
-    "@req(" <> pretty req <> ")" <> line
+  pretty GCLProgram {req, program, ens}
+    =  "@req(" <> pretty req <> ")" <> line
     <> pretty program <> line
     <> "@ens(" <> pretty ens <> ")" <> line
 

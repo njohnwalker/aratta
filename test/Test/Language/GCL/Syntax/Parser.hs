@@ -42,7 +42,7 @@ spec_parseIdentityGCL =
   it "parse . pretty . parse = parse"
      \pathASTPairs -> do
        [parseGCL path $ renderGCLPretty ast | (path, ast) <- pathASTPairs]
-       `shouldBe` map (Right . snd) pathASTPairs
+       `shouldMatchList` map (Right . snd) pathASTPairs
   where
     parseAllGCLSources = do
       srcFilePaths <- findByExtension [".gcl"] "res/gcl"

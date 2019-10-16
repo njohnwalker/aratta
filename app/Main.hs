@@ -21,7 +21,5 @@ main = do
       Imp   -> runImp
       ImpPP -> runImpPP 
       GCL   -> runGCL
-      _     -> \_ _ -> putStrLn "Language not implemented yet"
     ) srcFile options
-
   }

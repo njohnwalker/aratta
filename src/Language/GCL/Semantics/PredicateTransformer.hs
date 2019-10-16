@@ -10,7 +10,7 @@ import Language.GCL.SMTLib ( boolToSExpr )
 import Language.GCL.Syntax.Abstract
 
 data BasicPath
-  =  Assume BExp
+  = Assume BExp
   | Substitute Text IExp
 
 type ParameterizedInvariant = ReaderT BExp []

@@ -17,7 +17,6 @@ import qualified Data.Text.IO as T.IO ( readFile )
 
 import Prelude hiding (and, not, or)
 
-
 import Text.Megaparsec
        ( Parsec, try, notFollowedBy
        , many, between, eof, (<|>)
@@ -28,7 +27,7 @@ import Text.Megaparsec
 import Control.Monad.Combinators.Expr
 
 import Language.GCL.Syntax.Abstract
-import Language.GCL.Syntax.Lexer
+import Language.GCL.Syntax.Lexer as Lex hiding ( Parser )
 
 type Parser = Parsec Void Text
 
@@ -66,7 +65,7 @@ stmt'
   =  assignStmt
  <|> doStmt
  <|> ifStmt
- 
+
 assignStmt, doStmt, ifStmt :: Parser Statement
 assignStmt = do
   varList <- sepBy identifier comma
@@ -106,7 +105,10 @@ iExp = makeExprParser iTerm iOpTable
 
 iOpTable :: [[Operator Parser IExp]]
 iOpTable
-  = [ [ InfixL $ (:+:) <$ plus
+  = [ [ InfixL $ (:/:) <$ Lex.div
+      , InfixL $ (:*:) <$ mult ]
+    , [ InfixL $ (:%:) <$ Lex.mod ]
+    , [ InfixL $ (:+:) <$ plus
       , InfixL $ (:-:) <$ minus
       ]
     ]
@@ -125,13 +127,13 @@ bExp = makeExprParser bTerm bOpTable
 bOpTable :: [[Operator Parser BExp]]
 bOpTable
   = [ [ Prefix $ Not <$ not ]
-    , [ InfixR $ (:|:) <$ or]
+    , [ InfixR $ (:|:) <$ or ]
     , [ InfixR $ (:&:) <$ and ]
     ]
     
 bTerm :: Parser BExp
 bTerm
-  =  parentheses bExp
+  =  try (parentheses bExp)
  <|> BConst <$> boolean
  <|> try gteRExp
  <|> gtRExp
@@ -139,8 +141,6 @@ bTerm
  <|> ltRExp
  <|> eRExp
  
- 
-
 -- Relations
 
 lteRExp = (:<=:) <$> try (iExp <* lequal) <*> iExp
@@ -150,4 +150,4 @@ ltRExp  = (:<:) <$> try (iExp <* lessthan) <*> iExp
 gtRExp  = (:>:) <$> try (iExp <* greaterthan) <*> iExp
 
 annotation :: Parser (Maybe BExp)
-annotation = between lparen rparen $ optional bExp
+annotation = parentheses $ optional bExp

@@ -20,6 +20,10 @@ intToSExpr = \case
   Var v -> SMT.const $ unpack  v
   IConst i -> SMT.int i
   i1 :-: i2 -> SMT.sub (intToSExpr i1) $ intToSExpr i2
+  i1 :%: i2 -> SMT.mod (intToSExpr i1) $ intToSExpr i2
+  i1 :/: i2 -> SMT.div (intToSExpr i1) $ intToSExpr i2
+  i1 :*: i2 -> SMT.mul (intToSExpr i1) $ intToSExpr i2
+
 
 boolToSMTAssertion :: SMT.Solver -> BExp -> IO ()
 boolToSMTAssertion solver bexp

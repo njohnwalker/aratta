@@ -1,35 +1,9 @@
-module Language.GCL.Syntax.Lexer
-  ( lexeme
-  , symbol
-  , space
-  , integer
-  , boolean
-  , parentheses
-  , ifBlock
-  , identifier
-  , arrow
-  , semicolon
-  , square
-  , assign
-  , equal
-  , minus
-  , plus
-  , not
-  , and
-  , or
-  , lequal
-  , gequal
-  , greaterthan
-  , lessthan
-  , comma
-  , lparen
-  , rparen
-  , reqTag
-  , ensTag
-  , invTag
-  , rwords
-  )
-where
+{- * GCL Lexicals
+
+import qualified Language.GCL.Syntax.Lexer as Lex -- or GCL.Lex
+
+-}
+module Language.GCL.Syntax.Lexer where
 
 import Prelude hiding ( not, and, or )
 
@@ -61,7 +35,7 @@ boolean :: Parser Bool
 boolean = rword "true" *> pure True <|> rword "false" *> pure False
 
 parentheses :: Parser a -> Parser a
-parentheses = between (symbol "(") $ symbol ")"
+parentheses = between lparen rparen
 
 ifBlock :: Parser a -> Parser a
 ifBlock = between (symbol "if") $ symbol "fi"
@@ -87,6 +61,9 @@ or        = symbol "|"
 lequal    = symbol "<="
 gequal    = symbol ">="
 plus      = symbol "+"
+mult      = symbol "*"
+div       = symbol "/"
+mod       = symbol "%"
 minus     = try $ PChar.string "-" >> notFollowedBy ">" >> space >> return "-"
 arrow     = symbol "->"
 equal     = symbol "=="
@@ -98,6 +75,7 @@ rparen = symbol ")"
 reqTag = symbol "@req"
 ensTag = symbol "@ens"
 invTag = symbol "@inv"
+
 
 -------------
 -- Helpers --
@@ -111,4 +89,5 @@ rwords :: [Text]
 rwords = [ "if", "fi", "do", "od", "true", "false"
          -- probable (short) SMTLIB reserved words
          -- anything that fails smt parse in generated tests
-         , "and"]
+         , "and"
+         ]
