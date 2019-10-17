@@ -11,7 +11,7 @@ import Language.GCL.Syntax.Abstract
 
 data BasicPath
   = Assume BExp
-  | Substitute Text IExp
+  | Substitute [Text] [IExp]
 
 type ParameterizedInvariant = ReaderT BExp []
 instance Semigroup (ParameterizedInvariant a) where
@@ -36,7 +36,7 @@ getPaths :: BExp -> [Statement] -> [BasicPath] -> ParameterizedInvariant ([Basic
 getPaths post [] path = return (path,post)
 getPaths post (stmt:stmts) path
   = case stmt of
-      vars := exps -> getPaths post stmts $ path ++ zipWith Substitute vars exps
+      vars := exps -> getPaths post stmts $ path ++ [Substitute vars exps]
       If gcs ->
         return (path ++ [Assume $ negateGuards gcs], post)
         <> getPathsGCS post gcs path
@@ -63,22 +63,22 @@ wpSeq = foldl (\f ins -> f . wp ins) id
 wp :: BasicPath -> BExp -> BExp
 wp = \case
   Assume p -> (p :=>:)
-  Substitute v e -> (substitute v e)
+  Substitute vs es -> substitute $ zip vs es
 
 -------------
 -- helpers --
-substitute :: Text -> IExp -> BExp -> BExp
-substitute v e = transform match
+substitute :: [(Text,IExp)] -> BExp -> BExp
+substitute sub = transform match
   where
     match = \case
-      i1 :<=: i2 -> substituteIExp v e i1 :<=: substituteIExp v e i2
+      i1 :<=: i2 -> substituteIExp sub i1 :<=: substituteIExp sub i2
       e' -> e'
 
-substituteIExp :: Text -> IExp -> IExp ->IExp
-substituteIExp v e = transform match
+substituteIExp :: [(Text,IExp)] -> IExp ->IExp
+substituteIExp sub = transform match
   where
     match = \case
-      Var v' | v == v' -> e
+      Var v' -> maybe (Var v') id $ lookup v' sub
       e' -> e'
 
 negateGuards :: GuardedCommandSet -> BExp

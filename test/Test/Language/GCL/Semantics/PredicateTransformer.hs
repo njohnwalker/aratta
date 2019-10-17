@@ -91,7 +91,7 @@ spec_wpSubstitute =
   it "wp of substitute statement is the substituted expression" do
   let exp = (10  :<=: Var "x") :&: BConst True
       exp' = (10 :<=: 10) :&: BConst True
-  wp (Substitute "x" $ 10) exp `shouldBe` exp'
+  wp (Substitute ["x"] [10]) exp `shouldBe` exp'
 
 spec_wpSequence :: Spec
 spec_wpSequence =
@@ -101,10 +101,10 @@ spec_wpSequence =
       z = Var "z"
       path =
         [ Assume $ x :<=: y
-        , Substitute "y" $ 30 :+: 14 :-: x
-        , Substitute "x" 17
+        , Substitute ["y"] [30 :+: 14 :-: x]
+        , Substitute ["x"] [17]
         , Assume $ y :<=: x
-        , Substitute "x" $ z :-: 7
+        , Substitute ["x"] [z :-: 7]
         ]
       ensures = z :<=: x :&: y :<=: x :&: y :<=: z :&: z :<=: 10
       weakestPrecondition = x :<=: y
@@ -120,37 +120,37 @@ spec_wpSequence =
 spec_substituteIExp :: Spec
 spec_substituteIExp =
   it "substituteIExp replaces variable occurences with expression" do
-  let exp = IConst 10 :-: Var "x"
-      exp' = IConst 10 :-: IConst 10
-  substituteIExp "x" (IConst 10) exp `shouldBe` exp'
+  let exp = 10 :-: Var "x"
+      exp' = 10 :-: 10
+  substituteIExp [("x", 10)] exp `shouldBe` exp'
 
 spec_substituteIExpIdentity :: Spec
 spec_substituteIExpIdentity =
   it "substituteIExp terminates on identity substitution" do
-  let exp = IConst 10 :-: Var "x"
-      exp' = IConst 10 :-: Var "x"
-  substituteIExp "x" (Var "x") exp `shouldBe` exp'
+  let exp = 10 :-: Var "x"
+      exp' = 10 :-: Var "x"
+  substituteIExp [("x", Var "x")] exp `shouldBe` exp'
 
 spec_substitute :: Spec
 spec_substitute =
   it "substitute replaces variable occurences with expression" do
-  let exp = (IConst 10 :<=: Var "x") :&: BConst True
-      exp' = (IConst 10 :<=: IConst 10) :&: BConst True
-  substitute "x" (IConst 10) exp `shouldBe` exp'
+  let exp = (10 :<=: Var "x") :&: BConst True
+      exp' = (10 :<=: 10) :&: BConst True
+  substitute [("x", 10)] exp `shouldBe` exp'
 
 spec_substituteIdentity :: Spec
 spec_substituteIdentity =
   it "substitute terminates on identity substitution" do
-  let exp = (IConst 10 :<=: Var "x") :&: BConst True
-  substitute "x" (Var "x") exp `shouldBe` exp
+  let exp = (10 :<=: Var "x") :&: BConst True
+  substitute [("x", Var "x")] exp `shouldBe` exp
 
 spec_substitute_contrived :: Spec
 spec_substitute_contrived =
   it "substitute performs a nested, multiple, non-idempotent substitution" do
-  let exp = (Var "x" :<=: IConst 22)
-            :&: Not (Not (Var "z" :<=: (Var "x" :-: (IConst 0 :-: IConst 12)))
+  let exp = (Var "x" :<=: 22)
+            :&: Not (Not (Var "z" :<=: (Var "x" :-: (0 :-: 12)))
                      :&: Not (Not (Var "x" :<=: Var "x")))
-      exp' = ((IConst 42 :-: Var "x") :<=: IConst 22)
-             :&: Not (Not (Var "z" :<=: ((IConst 42 :-: Var "x") :-: (IConst 0 :-: IConst 12)))
-                      :&: Not (Not ((IConst 42 :-: Var "x") :<=: (IConst 42 :-: Var "x"))))
-  substitute "x" (IConst 42 :-: Var "x") exp `shouldBe` exp'
+      exp' = ((42 :-: Var "x") :<=: 22)
+             :&: Not (Not (Var "z" :<=: ((42 :-: Var "x") :-: (0 :-: 12)))
+                      :&: Not (Not ((42 :-: Var "x") :<=: (42 :-: Var "x"))))
+  substitute [("x", 42 :-: Var "x")] exp `shouldBe` exp'
