@@ -16,56 +16,54 @@ data BasicPath
 type ParameterizedInvariant = ReaderT BExp []
 instance Semigroup (ParameterizedInvariant a) where
   (<>) (ReaderT l1) (ReaderT l2) = ReaderT $ \r -> l1 r <> l2 r
-                                                  
+
+specifyInvariant :: BExp -> ParameterizedInvariant a -> [a]
+specifyInvariant = flip runReaderT
+
+-------------------
+-- VC Generation --
+
+-- | Generate all VCs from all basic paths of a program
 getBasicPathVCs :: GCLProgram -> ParameterizedInvariant BExp
 getBasicPathVCs GCLProgram {req , program, ens} =
  let path = maybe [] ((:[]) . Assume) req
-     post = maybe (BConst True) id ens 
-  in uncurry wpSeq <$> getPaths post program path 
+     post = maybe (BConst True) id ens
+     stmts = case program of Seq stmts -> stmts ; stmt -> [stmt]
+  in uncurry wpSeq <$> getPaths post stmts path
 
 -- | Generate all basic paths and postcondition pairs, parameterized by invariant
-getPaths :: BExp -> Statement -> [BasicPath] -> ParameterizedInvariant ([BasicPath],BExp)
-
--- Assign Statements
-getPaths post (vars := exps) path =
-  return $ (,post) $ path ++ zipWith Substitute vars exps
-
--- If Statements
-getPaths post (If (GCS gcs)) path =
-  return (path ++ [Assume $ negateGuards gcs], post) <>
-  do
-    GC {guard, statement} <- lift gcs
-    getPaths post statement (path ++ [(Assume guard)])
-
-
--- Empty Sequence Statements
-getPaths post (Seq []) path = return (path,post)
-
--- Inductive sequence statements
-getPaths post (Seq (stmt:stmts)) path
+getPaths :: BExp -> [Statement] -> [BasicPath] -> ParameterizedInvariant ([BasicPath],BExp)
+getPaths post [] path = return (path,post)
+getPaths post (stmt:stmts) path
   = case stmt of
-      vars := exps -> getPaths post (Seq stmts) $ path ++ zipWith Substitute vars exps
-      If (GCS gcs) ->
-        return (path ++ [Assume $ negateGuards gcs], post) <>
-        do
-          GC {guard, statement} <- lift gcs
-          let stmts' = case statement of Seq stmts' -> stmts' ; stmt' -> [stmt'] 
-          getPaths post (Seq (stmts'++stmts)) (path ++ [(Assume guard)])
+      vars := exps -> getPaths post stmts $ path ++ zipWith Substitute vars exps
+      If gcs ->
+        return (path ++ [Assume $ negateGuards gcs], post)
+        <> getPathsGCS post gcs path
+      Do mInv gcs -> do
+        inv <- case mInv of Nothing -> ask ; Just i -> return i
+        return (path, inv) -- cut on previous path
+          <> getPaths post stmts [Assume inv, Assume $ negateGuards gcs] -- post loop path
+          <> getPathsGCS inv gcs [Assume inv] -- loop branch paths
+      Seq stmts' ->
+        -- not convinced this is possible
+        getPaths post (stmts' ++ stmts) path
+  where
+    getPathsGCS :: BExp -> GuardedCommandSet -> [BasicPath] -> ParameterizedInvariant ([BasicPath],BExp)
+    getPathsGCS post gcs path = do
+      GC {guard, statement} <- lift $ getCommandList gcs
+      let stmts' = case statement of Seq stmts' -> stmts' ; stmt' -> [stmt']
+      getPaths post (stmts' ++ stmts) (path ++ [(Assume guard)])
 
-      _ -> error "not implemented yet"
+-- | calculate the wp of a basic path
+wpSeq :: [BasicPath] -> BExp -> BExp
+wpSeq = foldl (\f ins -> f . wp ins) id
 
-getPaths _ _ _ = error "not implemented yet"
-
-specifyInvariant :: BExp -> ParameterizedInvariant a -> [a]
-specifyInvariant = flip runReaderT 
-
+-- | calculate the weakest pre of a single basic instruction
 wp :: BasicPath -> BExp -> BExp
 wp = \case
   Assume p -> (p :=>:)
-  Substitute v e -> (substitute v e) 
-  
-wpSeq :: [BasicPath] -> BExp -> BExp
-wpSeq = foldl (\f ins -> f . wp ins) id
+  Substitute v e -> (substitute v e)
 
 -------------
 -- helpers --
@@ -77,15 +75,14 @@ substitute v e = transform match
       e' -> e'
 
 substituteIExp :: Text -> IExp -> IExp ->IExp
-substituteIExp v e = transform match 
+substituteIExp v e = transform match
   where
     match = \case
       Var v' | v == v' -> e
-      e' -> e'  
+      e' -> e'
 
-negateGuards :: [GuardedCommand] -> BExp
-negateGuards [] = BConst True
-negateGuards xs
+negateGuards :: GuardedCommandSet -> BExp
+negateGuards (GCS []) = BConst True
+negateGuards (GCS xs)
   = foldl1 (:&:)
   $ map (Not . guard) xs
-

@@ -1,42 +1,83 @@
 module Test.Language.GCL.Semantics.PredicateTransformer
 where
 
+import Data.List ( zipWith5 )
 import qualified Data.Text.IO as T.IO
 
 import Test.Hspec
+import Test.Tasty
+import Test.Tasty.Hspec
+
 
 import Language.GCL
 
 ----------------------
 -- Basic Path Tests --
+
+basicpathSpec :: String -> FilePath -> BExp -> [BExp] -> Spec
+basicpathSpec description pgmPath invariant vcs =
+  it description do
+  ePgm <- readAndParseGCL pgmPath
+  case ePgm of
+    Left err -> err `shouldBe` "a correct parse"
+    Right pgm ->
+      specifyInvariant invariant (getBasicPathVCs pgm)
+      `shouldMatchList` vcs
+
 spec_trivial_basicpath :: Spec
-spec_trivial_basicpath = 
-  it "VC of program with no branches or loops" do
-  ePgm  <- readAndParseGCL "res/gcl/trivial-basicpath.gcl"
-  case ePgm of
-    Left err -> err `shouldBe` "a Correct Parse"
-    Right pgm ->
-      specifyInvariant (BConst False) (getBasicPathVCs pgm) `shouldBe`
-      let [x,y,z] = map Var ["x","y","z"]
-      in [x :<=: y :=>: z :<=: z :-: 7
-           :&: 30 :+: 14 :-: x :<=: z :-: 7
-           :&: 30 :+: 14 :-: x :<=: z
-           :&: z :<=: 10]
-         
+spec_trivial_basicpath = basicpathSpec
+  "VC of program with no branches or loops"
+  "res/gcl/trivial-basicpath.gcl"
+  (BConst False)
+  let [x,y,z] = map Var ["x","y","z"]
+  in [ x :<=: y :=>: z :<=: z :-: 7
+       :&: 30 :+: 14 :-: x :<=: z :-: 7
+       :&: 30 :+: 14 :-: x :<=: z
+       :&: z :<=: 10
+     ]
+
+spec_simultaneous_assignment_basicpath :: Spec
+spec_simultaneous_assignment_basicpath =
+  it "Simultaneous assignment is not serialized"
+  do  getVCs (Var "a" :<=: Var "b") [["a","b"] := [Var "b", Var "a"]]
+       `shouldBe` [Var "b" :<=: Var "a"]
+  where
+    getVCs p stmt =
+      map (uncurry wpSeq)
+      $ specifyInvariant (BConst True)
+      $ getPaths p stmt []
+
+
 spec_max_basicpaths :: Spec
-spec_max_basicpaths =
-  it "VC of max program (only branches, no loops)" do
-  ePgm  <- readAndParseGCL "res/gcl/max.gcl"
-  case ePgm of
-    Left err -> err `shouldBe` "a Correct Parse"
-    Right pgm ->
-      specifyInvariant (BConst False) (getBasicPathVCs pgm) `shouldMatchList`
-      let [x,y,m] = map Var ["x","y","m"]
-      in [ x :>=: y :=>: x :>=: x :&: x :>=: y
-         , y :>=: x :=>: y :>=: x :&: y :>=: y
-         , Not (x :>=: y) :&: Not (y :>=: x) :=>: m :>=: x :&: m :>=: y
-         ]
-  
+spec_max_basicpaths = basicpathSpec
+  "VC of max program (only branches, no loops)"
+  "res/gcl/max.gcl"
+  (BConst False)
+  let [x,y,m] = map Var ["x","y","m"]
+  in [ x :>=: y :=>: x :>=: x :&: x :>=: y
+     , y :>=: x :=>: y :>=: x :&: y :>=: y
+     , Not (x :>=: y) :&: Not (y :>=: x) :=>: m :>=: x :&: m :>=: y
+     ]
+
+spec_peasants_multiplication_basicpath :: Spec
+spec_peasants_multiplication_basicpath = basicpathSpec
+  "VC of peasant's multiplication program (single loop)"
+  "res/gcl/peasants-multiplication.gcl"
+  (a :+: b:+: x :+: y :+: res :<=: 0) -- garbage invariant mentioning all FVs
+  [ x :>=: 0 :&: y :>=: 0 :=>:
+    x :+: y :+: x :+: y :+: 0 :<=: 0
+  , a :+: b :+: x :+: y :+: res :<=: 0 :=>:
+    a :>: 0 :&: a :%: 2 :==: 1 :=>:
+    a :+: b :+: x :+: y :+: (res :+: b) :<=: 0
+  , a :+: b :+: x :+: y :+: res :<=: 0 :=>:
+    a :>: 0 :&: Not (a :%: 2 :==: 1) :=>:
+    a :/: 2 :+: b :*: 2 :+: x :+: y :+: res :<=: 0
+  , a :+: b :+: x :+: y :+: res :<=: 0 :=>:
+    Not (a :>: 0 :&: a :%: 2 :==: 1) :&:
+    Not (a :>: 0 :&: Not (a :%: 2 :==: 1)) :=>:
+    res :==: x :*: y
+  ]
+  where [a,b,x,y,res] = map Var ["a","b","x","y","res"]
 
 -----------------------
 -- Weakest Pre tests --
