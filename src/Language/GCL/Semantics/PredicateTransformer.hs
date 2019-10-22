@@ -38,7 +38,7 @@ getPaths post (stmt:stmts) path
   = case stmt of
       vars := exps -> getPaths post stmts $ path ++ [Substitute vars exps]
       If gcs ->
-        return (path ++ [Assume $ negateGuards gcs], post)
+        return (path ++ [Assume $ negateGuards gcs], post) -- empty if is a "break"
         <> getPathsGCS post gcs path
       Do mInv gcs -> do
         inv <- case mInv of Nothing -> ask ; Just i -> return i

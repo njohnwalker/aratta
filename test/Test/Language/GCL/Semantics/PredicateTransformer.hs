@@ -28,7 +28,7 @@ spec_trivial_basicpath :: Spec
 spec_trivial_basicpath = basicpathSpec
   "VC of program with no branches or loops"
   "res/gcl/trivial-basicpath.gcl"
-  (BConst False)
+  undefined -- invariant is never evaluated
   let [x,y,z] = map Var ["x","y","z"]
   in [ x :<=: y :=>: z :<=: z :-: 7
        :&: 30 :+: 14 :-: x :<=: z :-: 7
@@ -36,27 +36,26 @@ spec_trivial_basicpath = basicpathSpec
        :&: z :<=: 10
      ]
 
-spec_simultaneous_assignment_basicpath :: Spec
-spec_simultaneous_assignment_basicpath =
-  it "Simultaneous assignment is not serialized"
-  do  getVCs (Var "a" :<=: Var "b") [["a","b"] := [Var "b", Var "a"]]
-       `shouldBe` [Var "b" :<=: Var "a"]
-  where
-    getVCs p stmt =
-      map (uncurry wpSeq)
-      $ specifyInvariant (BConst True)
-      $ getPaths p stmt []
-
-
 spec_max_basicpaths :: Spec
 spec_max_basicpaths = basicpathSpec
   "VC of max program (only branches, no loops)"
   "res/gcl/max.gcl"
-  (BConst False)
+  undefined
   let [x,y,m] = map Var ["x","y","m"]
   in [ x :>=: y :=>: x :>=: x :&: x :>=: y
      , y :>=: x :=>: y :>=: x :&: y :>=: y
      , Not (x :>=: y) :&: Not (y :>=: x) :=>: m :>=: x :&: m :>=: y
+     ]
+
+spec_if_basicpaths :: Spec
+spec_if_basicpaths = basicpathSpec
+  "VC of program with if statement in between assigns branches correctly"
+  "res/gcl/if-foo.gcl"
+  undefined
+  let [x,y,z] = map Var ["x","y","z"]
+  in [ Not (BConst True) :&: Not (BConst False) :=>: 1 :<=: y :&: y :<=: z
+     , BConst False :=>: 1 :<=: 2 :&: 2 :<=: 1
+     , BConst True :=>: 1 :<=: 1 :&: 1 :<=: 1
      ]
 
 spec_peasants_multiplication_basicpath :: Spec
@@ -78,6 +77,18 @@ spec_peasants_multiplication_basicpath = basicpathSpec
     res :==: x :*: y
   ]
   where [a,b,x,y,res] = map Var ["a","b","x","y","res"]
+
+-- non file basicpath tests
+spec_simultaneous_assignment_basicpath :: Spec
+spec_simultaneous_assignment_basicpath =
+  it "Simultaneous assignment is not serialized"
+  do getVCs (Var "a" :<=: Var "b") [["a","b"] := [Var "b", Var "a"]]
+       `shouldBe` [Var "b" :<=: Var "a"]
+  where
+    getVCs p stmt =
+      map (uncurry wpSeq)
+      $ specifyInvariant undefined
+      $ getPaths p stmt []
 
 -----------------------
 -- Weakest Pre tests --
