@@ -2,7 +2,7 @@ module SemanticModel.PredicateTransformer
 where
 
 import Control.Monad.Reader ( Reader )
-import SimpleSMT ( SExpr )
+import SimpleSMT ( SExpr, Solver )
 
 -- | Class of languages with predicate transformer semantics
 class PredicateTransformer lang where

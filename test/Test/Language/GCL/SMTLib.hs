@@ -51,10 +51,33 @@ hprop_boolToSExpr =  Hog.property $ do
     Right Unsat -> Hog.assert $ Prelude.not $ GCL.evalBoolAny bExp
     _ -> Hog.discard
 
--- hmmm...
-hogEvalIOEither :: (Hog.MonadTest m, MonadIO m, HasCallStack) => IO a -> m (Either IOException a)
-hogEvalIOEither io = Hog.evalIO $ try io
+spec_trivial_validity_vcs :: Spec
+spec_trivial_validity_vcs =
+  before newZ3Solver $ do
+  it "Sends validity checks to smt solver from a list of simple VCs"
+    \solver ->
+    checkValidVCs solver
+    [ BConst True
+    , 0 :<=: 0
+    , x :<=: y :&: y :<=: z :=>: x :<=: z
+    ] `shouldReturn` Valid
+  where [x,y,z] = map Var ["x","y","z"]
 
-replayFDException :: IO ()
-replayFDException =
-  Hog.recheck (Hog.Size 88) (Hog.Seed 2852360753211302202 8158979062945036807) hprop_boolToSExpr
+spec_trivial_in_validity_vcs :: Spec
+spec_trivial_in_validity_vcs =
+  before newZ3Solver $ do
+  it "Sends validity checks to smt solver from a list of simple invalid VCs"
+    \solver ->
+    checkValidVCs solver
+    [ 0 :<=: 0
+    , x :<=: y :&: z :<=: y :=>: x :<=: z
+    , x :<=: z :=>: z :<=: x
+    ] `shouldReturn` Invalid (x :<=: y :&: z :<=: y :=>: x :<=: z)
+  where [x,y,z] = map Var ["x","y","z"]
+
+
+-- hmmm... encountered hGetContents unreadable bytestring errors
+hogEvalIOEither
+  :: (Hog.MonadTest m, MonadIO m, HasCallStack)
+  => IO a -> m (Either IOException a)
+hogEvalIOEither io = Hog.evalIO $ try io
