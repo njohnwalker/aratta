@@ -3,7 +3,7 @@ x := 10 ;
 if x == y -> y := y + 1
 [] x <= y -> y := 7 - y ;
 do @inv()
-[] v > z -> do @inv() od
+[] v > z -> do @inv(quux >= ni) od
 [] z < v -> if fi
 od
 [] foo >= baz | ~ true & 0 > 1 | (x % 2) == 0 -> z := 4 + 30 - (x * y) / 24

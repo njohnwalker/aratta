@@ -6,7 +6,7 @@ if x == y ->
       y := 7 - y ;
       do @inv()
       [] v > z ->
-            do @inv() od
+            do @inv(ni <= quux) od
       [] v > z ->
             if fi
       od

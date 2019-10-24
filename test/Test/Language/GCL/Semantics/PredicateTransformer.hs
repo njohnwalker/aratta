@@ -1,20 +1,67 @@
 module Test.Language.GCL.Semantics.PredicateTransformer
 where
 
-import Data.List ( zipWith5 )
+import SMTIO
 import qualified Data.Text.IO as T.IO
 
 import Test.Hspec
 import Test.Tasty
 import Test.Tasty.Hspec
 
-
 import Language.GCL
+
+------------------------
+-- VC validity checks --
+-- spec_trivial_validity_vcs :: Spec
+-- spec_trivial_validity_vcs =
+--   before newZ3Solver $ do
+--   it "Sends validity checks to smt solver from a list of simple VCs"
+--     \solver ->
+--     checkValidVCs solver undefined undefined
+--     ( return (BConst True)
+--      <> (0 :<=: 0)
+--      <> (x :<=: y :&: y :<=: z :=>: x :<=: z)
+--     ) `shouldReturn` Valid
+--   where [x,y,z] = map Var ["x","y","z"]
+
+-- spec_trivial_invalidity_vcs :: Spec
+-- spec_trivial_invalidity_vcs =
+--   before newZ3Solver $ do
+--   it "Sends validity checks to smt solver from a list of simple invalid VCs"
+--     \solver ->
+--     checkValidVCs solver
+--     [ 0 :<=: 0
+--     , x :<=: y :&: z :<=: y :=>: x :<=: z
+--     , x :<=: z :=>: z :<=: x
+--     ] `shouldReturn` Invalid (x :<=: y :&: z :<=: y :=>: x :<=: z)
+--   where [x,y,z] = map Var ["x","y","z"]
+
+validitySpec
+  :: String -- ^ test description
+  -> FilePath -- ^ gcl source file
+  -> BExp -- ^ candidate invariant
+  -> Validity -- ^ expected result
+  -> Spec
+validitySpec description pgmPath invariant expected =
+  it description do
+  readAndParseGCL pgmPath >>= \case
+    Left err -> err `shouldBe` "a correct parse"
+    Right pgm ->
+      let closure = undefined -- getClosure pgm
+          pVCs = getBasicPathVCs pgm
+      in do
+        solver <- newZ3Solver
+        checkValidVCs solver closure invariant pVCs
+          `shouldReturn` expected
 
 ----------------------
 -- Basic Path Tests --
-
-basicpathSpec :: String -> FilePath -> BExp -> [BExp] -> Spec
+basicpathSpec
+  :: String -- ^ test description
+  -> FilePath -- ^ gcl source file
+  -> BExp -- ^ candidate invariant for program
+  -> [BExp] -- ^ expected VCs
+  -> Spec
 basicpathSpec description pgmPath invariant vcs =
   it description do
   ePgm <- readAndParseGCL pgmPath

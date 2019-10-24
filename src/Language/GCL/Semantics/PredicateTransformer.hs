@@ -5,9 +5,12 @@ import Control.Monad ((>=>))
 import Control.Monad.Reader hiding ( guard )
 import Control.Lens ( transform, (^?), over )
 import Data.Text ( Text )
+import qualified Data.Set as Set
 
-import Language.GCL.SMTLib ( boolToSExpr )
-import Language.GCL.Syntax.Abstract
+import qualified SimpleSMT as SMT
+import           Language.GCL.Environment
+import qualified Language.GCL.SMTLib as GCL.SMT
+import           Language.GCL.Syntax.Abstract
 
 data BasicPath
   = Assume BExp
@@ -21,8 +24,38 @@ specifyInvariant :: BExp -> ParameterizedInvariant a -> [a]
 specifyInvariant = flip runReaderT
 
 -------------------
--- VC Generation --
+-- VC Validation --
+data Validity = Valid | Invalid BExp
+  deriving (Eq, Ord, Show)
 
+checkValidVCs
+  :: SMT.Solver -- Solver MVar for SMT
+  -> Set.Set Text -- Program closure
+  -> BExp -- Candidate invariant
+  -> ParameterizedInvariant BExp -- Program invariants
+  -> IO Validity
+checkValidVCs solver closure inv pVCs =
+  let vcs = specifyInvariant inv pVCs
+      fullClosure = Set.union closure $ getClosureBool inv
+  in SMT.inNewScope solver $ do
+    GCL.SMT.declareHeader solver fullClosure
+    SMT.push solver
+    results <- forM vcs $ \vc -> do
+      SMT.push solver
+      GCL.SMT.boolToSMTAssertion solver $ Not vc
+      res <- SMT.check solver
+      SMT.pop solver
+      return (vc, res)
+    return $ smtResultsToValidity results
+  where
+    smtResultsToValidity :: [(BExp, SMT.Result)] -> Validity
+    smtResultsToValidity []                     =   Valid
+    smtResultsToValidity ((vc, SMT.Sat    ): _) = Invalid vc
+    smtResultsToValidity ((vc, SMT.Unknown): _) = Invalid vc
+    smtResultsToValidity (( _, SMT.Unsat  ):rs) = smtResultsToValidity rs
+
+-------------------
+-- VC Generation --
 -- | Generate all VCs from all basic paths of a program
 getBasicPathVCs :: GCLProgram -> ParameterizedInvariant BExp
 getBasicPathVCs GCLProgram {req , program, ens} =

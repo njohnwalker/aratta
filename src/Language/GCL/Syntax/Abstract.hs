@@ -4,7 +4,7 @@ import qualified Control.Monad as M ( guard )
 
 import Data.Data
 
-import Control.Lens ( Plated, plate, makePrisms )
+import Control.Lens
 import Data.Text ( Text )
 import GHC.Generics hiding ( (:*:) )
 import Data.Hashable
@@ -62,11 +62,16 @@ data Statement
 
 instance Hashable Statement
 
+deriving instance Data Statement
+
+instance Plated Statement
+
 newtype GuardedCommandSet =
   GCS { getCommandList :: [GuardedCommand] }
   deriving (Eq, Ord, Show, Generic)
 
 instance Hashable GuardedCommandSet
+deriving instance Data GuardedCommandSet
 
 data GuardedCommand = GC
   { guard :: BExp
@@ -75,6 +80,8 @@ data GuardedCommand = GC
   deriving (Eq, Ord, Show, Generic)
 
 instance Hashable GuardedCommand
+
+deriving instance Data GuardedCommand
 
 data BExp
   = BConst Bool
@@ -93,8 +100,16 @@ data IExp
   | IExp :/: IExp
   | IExp :%: IExp
   deriving (Eq, Ord, Show, Generic)
-
 infixl 6 :-:
+infixl 7 :*:, :/:, :%:
+
+makeClassy_ ''GCLProgram
+makeClassy_ ''GuardedCommand
+makeClassy_ ''GuardedCommandSet
+
+makePrisms ''IExp
+makePrisms ''BExp
+makePrisms ''Statement
 
 instance Num IExp where
   i + j = i :+: j
@@ -140,7 +155,6 @@ pattern l :==: r <-
 
 ----------------------------------
 -- Pretty-printing GCL programs --
-
 prettyIntBinop :: Doc ann -> IExp -> IExp -> Doc ann
 prettyIntBinop op e1 e2 =
   smartParensIExp e1 <> softline <> op <> softline <> smartParensIExp e2
