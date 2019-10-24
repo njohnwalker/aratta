@@ -1,26 +1,4 @@
-
-/*
-method pm(x : int, y : int) returns (res: int)
-  requires x >= 0 && y >= 0
-  ensures res == x * y
-{
-  var a := x;
-  var b := y;
-  res := 0;
-  while (a > 0)
-    invariant a * b + res == x * y
-    invariant a >= 0 && b >= 0 && x >= 0 && y >= 0
-  {
-    if a % 2 == 1 {
-      res := res + b;
-    }
-      a := a / 2;
-      assert a >= 0;
-      b := b * 2;
-  }
-  return res;
-}
-*/
+// serial version of peasant's multiplication
 
 @req(x >= 0 & y >= 0)
 a, b, res := x, y, 0 ;
@@ -29,9 +7,7 @@ a, b, res := x, y, 0 ;
 
 do @inv()
 [] a > 0 ->
-     if a % 2 == 1 ->
-        res := res + b
-     fi ;
+     if a % 2 == 1 -> res := res + b fi ;
      a := a / 2 ;
      b := b * 2
 od

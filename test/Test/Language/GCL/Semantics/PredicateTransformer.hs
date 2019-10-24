@@ -138,7 +138,7 @@ spec_if_basicpaths = basicpathSpec
   "res/gcl/if-foo.gcl"
   undefined
   let [x,y,z] = map Var ["x","y","z"]
-  in [ Not (BConst True) :&: Not (BConst False) :=>: 1 :<=: y :&: y :<=: z
+  in [ Not (BConst True) :&: Not (BConst False) :=>: 1 :<=: y :&: y :<=: 1
      , BConst False :=>: 1 :<=: 2 :&: 2 :<=: 1
      , BConst True :=>: 1 :<=: 1 :&: 1 :<=: 1
      ]

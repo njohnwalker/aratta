@@ -188,14 +188,8 @@ instance Pretty GuardedCommand where
   pretty GC { guard, statement }
     = align (pretty guard <+> "->" <> nest 3 (line <> pretty statement))
 
-instance Pretty GuardedCommandSet where
-  pretty GCS { getCommandList } = case getCommandList of
-    [] -> emptyDoc
-    [gc] -> pretty gc
-    gc:gcs -> pretty gc
-           <> line
-           <> "[]  "
-           <> encloseSep "" "" "[] " (map pretty gcs)
+-- not needed instance
+-- instance Pretty GuardedCommandSet where
 
 instance Pretty Statement where
   pretty = \case
@@ -210,7 +204,7 @@ instance Pretty Statement where
     If (GCS []) -> "if fi"
     If (GCS (gc:gcs))
       -> "if" <+> (pretty gc) <> line
-      <> encloseSep "[] " "" "[] " (map pretty gcs) <> line
+      <>  case gcs of [] -> mempty ; _ -> vsep (map (("[]"<+>) . pretty) gcs) <> line
       <> "fi"
 
     Do inv (GCS []) -> "do" <+> (prettyAnn "@inv" inv) <+> "od"
