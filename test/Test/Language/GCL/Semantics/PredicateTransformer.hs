@@ -47,12 +47,50 @@ validitySpec description pgmPath invariant expected =
   readAndParseGCL pgmPath >>= \case
     Left err -> err `shouldBe` "a correct parse"
     Right pgm ->
-      let closure = undefined -- getClosure pgm
+      let closure = getClosure pgm
           pVCs = getBasicPathVCs pgm
       in do
         solver <- newZ3Solver
         checkValidVCs solver closure invariant pVCs
           `shouldReturn` expected
+
+spec_max_validity :: Spec
+spec_max_validity = validitySpec
+  "asserts the validity of the max.gcl program's VCs"
+  "res/gcl/max.gcl"
+  (BConst undefined)
+  Valid
+
+spec_peasants_multiplication_validity :: Spec
+spec_peasants_multiplication_validity = validitySpec
+  "asserts the validity of the (redundant code) \
+  \peasants-multiplication.gcl program's VCs"
+  "res/gcl/peasants-multiplication.gcl"
+-- invariant a * b + res == x * y
+  (a :*: b :+: res :==: x :*: y :&: a :>=: 0)
+  Valid
+  where [a,b,res,x,y] = map Var ["a","b","res","x","y"]
+
+spec_peasants_multiplication_serial_validity :: Spec
+spec_peasants_multiplication_serial_validity = validitySpec
+  "asserts the validity of the serial version of \
+  \peasants-multiplication.gcl program's VCs"
+  "res/gcl/peasants-multiplication.gcl"
+-- invariant a * b + res == x * y
+  (a :*: b :+: res :==: x :*: y :&: a :>=: 0)
+  Valid
+  where [a,b,res,x,y] = map Var ["a","b","res","x","y"]
+
+spec_peasants_multiplication_concurrent_validity :: Spec
+spec_peasants_multiplication_concurrent_validity = validitySpec
+  "asserts the validity of the concurrent version of \
+  \peasants-multiplication-concurrent.gcl program's VCs"
+  "res/gcl/peasants-multiplication-concurrent.gcl"
+-- invariant a * b + res == x * y
+  (a :*: b :+: res :==: x :*: y :&: a :>=: 0)
+  Valid
+  where [a,b,res,x,y] = map Var ["a","b","res","x","y"]
+
 
 ----------------------
 -- Basic Path Tests --

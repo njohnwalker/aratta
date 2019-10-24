@@ -51,7 +51,7 @@ checkValidVCs solver closure inv pVCs =
     smtResultsToValidity :: [(BExp, SMT.Result)] -> Validity
     smtResultsToValidity []                     =   Valid
     smtResultsToValidity ((vc, SMT.Sat    ): _) = Invalid vc
-    smtResultsToValidity ((vc, SMT.Unknown): _) = Invalid vc
+    smtResultsToValidity ((vc, SMT.Unknown): _) = Invalid $ Var "unknown" :<=: Var "result on" :&: vc
     smtResultsToValidity (( _, SMT.Unsat  ):rs) = smtResultsToValidity rs
 
 -------------------
@@ -71,7 +71,7 @@ getPaths post (stmt:stmts) path
   = case stmt of
       vars := exps -> getPaths post stmts $ path ++ [Substitute vars exps]
       If gcs ->
-        return (path ++ [Assume $ negateGuards gcs], post) -- empty if is a "break"
+        getPaths post stmts (path ++ [Assume $ negateGuards gcs]) -- TODO: maybe change back to break on unsat if
         <> getPathsGCS post gcs path
       Do mInv gcs -> do
         inv <- case mInv of Nothing -> ask ; Just i -> return i

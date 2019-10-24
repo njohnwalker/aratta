@@ -28,6 +28,10 @@ intToSExpr = \case
 
 boolToSMTAssertion :: SMT.Solver -> BExp -> IO ()
 boolToSMTAssertion solver bexp
+  = SMT.assert solver $ boolToSExpr bexp
+
+boolToSMTAssertionWithHeader :: SMT.Solver -> BExp -> IO ()
+boolToSMTAssertionWithHeader solver bexp
   =  declareHeader solver names
   >> SMT.assert solver (boolToSExpr bexp)
   where names = getClosureBool bexp

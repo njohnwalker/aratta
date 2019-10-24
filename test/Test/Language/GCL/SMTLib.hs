@@ -30,7 +30,7 @@ spec_simpleBoolToSExpr = let bexp = Var "a" :<=: Var "b"
   it "runs a simple smt query and \
      \asserts the boolean is satisfied by the model"
      \solver -> do
-       boolToSMTAssertion solver bexp
+       boolToSMTAssertionWithHeader solver bexp
        check solver
        env <- getModel solver $ Set.fromList ["a","b"]
        evalBool env bexp `shouldBe` True
@@ -40,7 +40,7 @@ hprop_boolToSExpr =  Hog.property $ do
   solver <- Hog.evalIO newZ3Solver
   bExp <- Hog.forAll Gen.bool
   eResult <- hogEvalIOEither $ do
-      boolToSMTAssertion solver bExp
+      boolToSMTAssertionWithHeader solver bExp
       check solver
   case eResult of
     Right Sat -> do
