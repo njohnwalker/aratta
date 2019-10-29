@@ -10,10 +10,9 @@ module Language.GCL.Environment
   )
 where
 
-import Control.Lens -- ( toListOf, both, _2 )
-import Control.Lens.Plated ( cosmos )
+import Control.Lens ( toListOf )
 
-import           Data.Text ( Text )
+import Data.Data.Lens ( biplate )
 import           Data.Set ( Set )
 import qualified Data.Set as Set
 import           Data.Map ( Map )
@@ -24,12 +23,12 @@ import qualified Data.Stream.Infinite as Stream
 
 import Language.GCL.Syntax.Abstract
 
-type Env = Map Text Integer
+type Env = Map Variable Integer
 
 initialEnv :: Env
 initialEnv = Map.empty
 
-lookupEnv :: Text -> Env ->  Integer
+lookupEnv :: Variable -> Env ->  Integer
 lookupEnv = Map.findWithDefault 0
 
 
@@ -42,11 +41,13 @@ integerStream = Stream.iterate (\x-> if x < 0 then x * (-1) + 1 else -(x+1)) 0
 
 tails = Stream.iterate Stream.tail
 
-makeAnyEnvironment :: Set Text -> Env
+makeAnyEnvironment :: Set Variable -> Env
 makeAnyEnvironment = Map.fromList . flip zip [0,0..] . Set.toList
 
--- | get the variable closure of a program
-getClosure :: GCLProgram -> Set Text
+
+-- TODO: convert to `foldmapof sets` instead of lists
+-- | Find the variable closure of a program
+getClosure :: GCLProgram -> Set Variable
 getClosure GCLProgram {req, program, ens}
   =  reqClo <> getClosureStmt program <> ensClo
   where
@@ -54,30 +55,13 @@ getClosure GCLProgram {req, program, ens}
     ensClo = maybe mempty getClosureBool ens
 
 -- | Find the free variables of a statement
-getClosureStmt :: Statement -> Set Text
-getClosureStmt = Set.fromList . toListOf (statementFold . _Var)
-  where
-    statementFold = cosmos . (assignFold <> doFold <> ifFold)
-    assignFold = (.:=) . (_1 . traverse . to Var <> _2 . traverse . cosmos)
-    doFold = _Do . (_1 . invFold <> _2 . commandListFold)
-    invFold = traverse . bExpFold
-    bExpFold = cosmos . (.:<=:) . both . cosmos
-    ifFold = _If . commandListFold
-    commandListFold = _getCommandList . traverse . (_guard . bExpFold <> (_statement . statementFold))
+getClosureStmt :: Statement -> Set Variable
+getClosureStmt = Set.fromList . toListOf biplate
 
 -- | Find the free variables of a boolean expression
-getClosureBool :: BExp -> Set Text
-getClosureBool = Set.fromList . toListOf (cosmos . (.:<=:) . both . cosmos . _Var)
-
--- getClosureBool (Not e)     = getClosureBool e
--- getClosureBool (e1 :&: e2) = getClosureBool e1 <> getClosureBool e2
--- getClosureBool (e1 :<=:e2) = getClosureInt e1 <> getClosureInt e2
--- getClosureBool _ = mempty
+getClosureBool :: BExp -> Set Variable
+getClosureBool = Set.fromList . toListOf biplate
 
 -- | Find the free variables of an integer expression
-getClosureInt :: IExp -> Set Text
-getClosureInt = Set.fromList . toListOf (cosmos . _Var)
-
--- getClosureInt (Var name)  = Set.singleton name
--- getClosureInt (i1 :-: i2) = getClosureInt i1 <> getClosureInt i2
--- getClosureInt _           = mempty
+getClosureInt :: IExp -> Set Variable
+getClosureInt = Set.fromList . toListOf biplate

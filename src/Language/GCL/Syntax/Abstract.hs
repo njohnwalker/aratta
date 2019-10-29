@@ -49,7 +49,7 @@ data GCLProgram = GCLProgram
   { req :: Maybe BExp
   , program :: Statement
   , ens :: Maybe BExp
-  } deriving (Eq, Ord, Show, Generic)
+  } deriving (Eq, Ord, Show, Generic, Data)
 
 instance Hashable GCLProgram
 
@@ -58,48 +58,45 @@ data Statement
   | If GuardedCommandSet
   | Do (Maybe BExp) GuardedCommandSet
   | [Text] := [IExp]
-  deriving (Eq, Ord, Show, Generic)
+  deriving (Eq, Ord, Show, Generic, Data)
 
 instance Hashable Statement
-
-deriving instance Data Statement
 
 instance Plated Statement
 
 newtype GuardedCommandSet =
   GCS { getCommandList :: [GuardedCommand] }
-  deriving (Eq, Ord, Show, Generic)
+  deriving (Eq, Ord, Show, Generic, Data)
 
 instance Hashable GuardedCommandSet
-deriving instance Data GuardedCommandSet
 
 data GuardedCommand = GC
   { guard :: BExp
   , statement :: Statement
   }
-  deriving (Eq, Ord, Show, Generic)
+  deriving (Eq, Ord, Show, Generic, Data)
 
 instance Hashable GuardedCommand
-
-deriving instance Data GuardedCommand
 
 data BExp
   = BConst Bool
   | Not BExp
   | BExp :&: BExp
   | IExp :<=: IExp
-  deriving (Eq, Ord, Show, Generic)
+  deriving (Eq, Ord, Show, Generic, Data)
 infixr 3 :&:
 infix 4 :<=:
 
+type Variable = Text
+
 data IExp
-  = Var Text
+  = Var Variable
   | IConst Integer
   | IExp :-: IExp
   | IExp :*: IExp
   | IExp :/: IExp
   | IExp :%: IExp
-  deriving (Eq, Ord, Show, Generic)
+  deriving (Eq, Ord, Show, Generic, Data)
 infixl 6 :-:
 infixl 7 :*:, :/:, :%:
 
@@ -123,9 +120,6 @@ instance Num IExp where
   signum _ = error "signum: not defined for expressions"
 
   fromInteger = IConst
-
-deriving instance Data BExp
-deriving instance Data IExp
 
 instance Plated BExp
 instance Plated IExp
