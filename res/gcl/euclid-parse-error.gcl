@@ -2,7 +2,7 @@
 x := 17 ;
 y := 24 ;
 do @inv()
-[]  x > y -> x   := x - y
-[]  y > x -> x,y := y,x,x
+[]  x > y -> x   := x - y ;
+[]  y > x -> x,y := y,x,x ;
 od
 @ens(false)

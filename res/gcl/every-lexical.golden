@@ -1,7 +1,7 @@
 @req(false)
 x := 10 ;
 if x == y ->
-      y := y + 1
+      y := y + 1 ;
 [] x <= y ->
       y := 7 - y ;
       do @inv()
@@ -11,9 +11,9 @@ if x == y ->
             if fi
       od
 [] (baz <= foo) | ~true & 0 > 1 | ((x % 2) == 0) ->
-      z := (4 + 30) - ((x * y) / 24)
+      z := (4 + 30) - ((x * y) / 24) ;
 [] true ->
-      x, y, z := 10, 20, 76
-fi ;
-catdog := c
+      x, y, z := 10, 20, 76 ;
+fi
+catdog := c ;
 @ens()

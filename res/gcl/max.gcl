@@ -1,5 +1,5 @@
 @req()
-if x >= y -> m := x 
-[] y >= x -> m := y
+if x >= y -> m := x ;
+[] y >= x -> m := y ;
 fi
 @ens(m >= x & m >= y)

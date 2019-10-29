@@ -9,7 +9,7 @@ So far we have:
 - [x] IMP++
 - [ ] LAMBDA
 - [ ] LAMBDA++
-- [ ] Guardd Command Language
+- [ ] Guarded Command Language
 
 #### Semantics
 

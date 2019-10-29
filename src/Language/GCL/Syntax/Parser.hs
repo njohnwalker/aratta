@@ -20,7 +20,7 @@ import Prelude hiding (and, not, or)
 import Text.Megaparsec
        ( Parsec, try, notFollowedBy
        , many, between, eof, (<|>)
-       , sepBy, parse, errorBundlePretty
+       , sepBy, sepEndBy, parse, errorBundlePretty
        , optional
        )
 
@@ -58,7 +58,7 @@ block = GCLProgram <$> requires <*> stmt <*> ensures
 -- Statements --
 
 stmt :: Parser Statement
-stmt = Seq <$> sepBy stmt' semicolon
+stmt = Seq <$> many stmt'
 
 stmt' :: Parser Statement
 stmt'
@@ -71,6 +71,7 @@ assignStmt = do
   varList <- sepBy identifier comma
   _       <- assign
   expList <- sepBy iExp comma
+  _       <- semicolon
   if length varList /= length expList
     then fail "Concurrent variable assignment list lengths do not match"
     else return $ varList := expList

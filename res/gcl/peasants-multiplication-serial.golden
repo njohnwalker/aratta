@@ -3,9 +3,9 @@ a, b, res := x, y, 0 ;
 do @inv()
 [] a > 0 ->
       if (a % 2) == 1 ->
-            res := res + b
-      fi ;
+            res := res + b ;
+      fi
       a := a / 2 ;
-      b := b * 2
+      b := b * 2 ;
 od
 @ens(res == (x * y))

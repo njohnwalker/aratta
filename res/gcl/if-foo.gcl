@@ -1,7 +1,7 @@
 @req()
 x := 1 ;
-if true -> y := 1
-[] false -> y := 2
-fi ;
-z := 1
+if true -> y := 1 ;
+[] false -> y := 2 ;
+fi
+z := 1 ;
 @ens(x <= y & y <= z)

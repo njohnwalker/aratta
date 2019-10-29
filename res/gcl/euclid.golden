@@ -1,13 +1,15 @@
 @req(true)
+x, y := m, n ;
 if 0 > x ->
-      x := 0 - x
+      x := 0 - x ;
 [] 0 > y ->
-      y := 0 - y
-fi ;
+      y := 0 - y ;
+fi
 do @inv()
 [] x > y ->
-      x := x - y
+      x := x - y ;
 [] y > x ->
-      x, y := y, x
+      x, y := y, x ;
 od
-@ens(x == y)
+@ens((x == y) & (((existsJ * x) == m) & ((existsK * x) ==
+n)))

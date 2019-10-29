@@ -1,7 +1,7 @@
 @req()
 if y <= x ->
-      m := x
+      m := x ;
 [] x <= y ->
-      m := y
+      m := y ;
 fi
 @ens((x <= m) & (y <= m))

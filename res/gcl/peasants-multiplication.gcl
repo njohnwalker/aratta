@@ -30,8 +30,8 @@ a, b, res := x, y, 0 ;
 do @inv()
 [] a > 0 & a % 2 == 1 ->
     res := res + b ;
-    a,b := a / 2, b * 2
+    a,b := a / 2, b * 2 ;
 [] a > 0 & ~ a % 2 == 1 ->
-    a,b := a / 2, b * 2  
+    a,b := a / 2, b * 2 ;
 od
 @ens(res == x * y)

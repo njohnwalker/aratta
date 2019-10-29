@@ -1,13 +1,14 @@
 @req(true)
-//x := m ;
-//y := n ;
-if x < 0 -> x := 0 - x
-[] y < 0 -> y := 0 - y
+x, y := m, n ;
+if x < 0 -> x := 0 - x ;
+[] y < 0 -> y := 0 - y ;
 fi
- ;
 do @inv()
-[]  x > y -> x   := x - y
-[]  y > x -> x,y := y,x
+[]  x > y -> x   := x - y ;
+[]  y > x -> x, y := y, x ;
 od
-// cannot express tight post condition with this logic 
-@ens(x == y)
+// cannot express GCD postcondition with this logic
+@ens( x == y
+    & existsJ * x == m
+    & existsK * x == n
+    )

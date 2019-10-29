@@ -90,7 +90,7 @@ infix 4 :<=:
 type Variable = Text
 
 data IExp
-  = Var Variable
+  = Var Variable -- TODO: support existentials in verification annotations
   | IConst Integer
   | IExp :-: IExp
   | IExp :*: IExp
@@ -188,12 +188,13 @@ instance Pretty GuardedCommand where
 instance Pretty Statement where
   pretty = \case
 
-    Seq stmts -> vsep $ punctuate (space <> semi) $ map pretty stmts
+    Seq stmts -> vsep $ map pretty stmts
 
     var := exp
       -> (encloseSep emptyDoc emptyDoc (comma <> space) $ map pretty var)
       <+> ":="
       <+> (encloseSep emptyDoc emptyDoc (comma <> space) $ map pretty exp)
+      <+> semi
 
     If (GCS []) -> "if fi"
     If (GCS (gc:gcs))
