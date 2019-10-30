@@ -1,0 +1,13 @@
+@req()
+m1, res := m, 0 ;
+do @inv()
+// invariant m1 >= 0 & res == (m - m1) * n
+[] m1 > 0 ->
+       n1 := n ;
+       do @inv()
+       // invariant n1 >= 0 & res == (m - m1 + 1) * n - n1
+       [] n1 > 0 -> res, n1 := res + 1, n1 -1 ;
+       od
+       m1 := m1 - 1 ;
+od
+@ens(res == m * n)

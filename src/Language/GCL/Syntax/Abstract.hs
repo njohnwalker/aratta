@@ -199,7 +199,9 @@ instance Pretty Statement where
     If (GCS []) -> "if fi"
     If (GCS (gc:gcs))
       -> "if" <+> (pretty gc) <> line
-      <>  case gcs of [] -> mempty ; _ -> vsep (map (("[]"<+>) . pretty) gcs) <> line
+      <>  case gcs of
+            [] -> mempty
+            _ -> vsep (map (("[]"<+>) . pretty) gcs) <> line
       <> "fi"
 
     Do inv (GCS []) -> "do" <+> (prettyAnn "@inv" inv) <+> "od"

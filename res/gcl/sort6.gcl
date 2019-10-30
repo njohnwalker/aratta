@@ -1,0 +1,21 @@
+// in-place sorts 6 integer variables
+@req()
+// phantom variables for invariant
+p0, p1, p2, p3, p4, p5
+    := x0, x1, x2, x3, x4, x5
+do @inv ()
+[]  x0 > x1 | x1 > x2 | x2 > x3 | x3 > x4 | x4 > x5 ->
+        if x0 > x1 -> x0, x1 := x1, x0 ;
+        [] x2 > x3 -> x2, x3 := x3, x2 ;
+        [] x4 > x5 -> x4. x5 := x5, x4 ;
+        fi
+        if x1 > x2 -> x1, x2 := x2, x1 ;
+        [] x3 > x4 -> x3, x4 := x4, x3 ;
+        fi
+od
+@ens( x0 <= x1
+    & x1 <= x2
+    & x2 <= x3
+    & x3 <= x4
+    & x4 <= x5
+)
