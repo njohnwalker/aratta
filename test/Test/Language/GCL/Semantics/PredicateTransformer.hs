@@ -12,30 +12,6 @@ import Language.GCL
 
 ------------------------
 -- VC validity checks --
--- spec_trivial_validity_vcs :: Spec
--- spec_trivial_validity_vcs =
---   before newZ3Solver $ do
---   it "Sends validity checks to smt solver from a list of simple VCs"
---     \solver ->
---     checkValidVCs solver undefined undefined
---     ( return (BConst True)
---      <> (0 :<=: 0)
---      <> (x :<=: y :&: y :<=: z :=>: x :<=: z)
---     ) `shouldReturn` Valid
---   where [x,y,z] = map Var ["x","y","z"]
-
--- spec_trivial_invalidity_vcs :: Spec
--- spec_trivial_invalidity_vcs =
---   before newZ3Solver $ do
---   it "Sends validity checks to smt solver from a list of simple invalid VCs"
---     \solver ->
---     checkValidVCs solver
---     [ 0 :<=: 0
---     , x :<=: y :&: z :<=: y :=>: x :<=: z
---     , x :<=: z :=>: z :<=: x
---     ] `shouldReturn` Invalid (x :<=: y :&: z :<=: y :=>: x :<=: z)
---   where [x,y,z] = map Var ["x","y","z"]
-
 validitySpec
   :: String -- ^ test description
   -> FilePath -- ^ gcl source file
@@ -43,16 +19,16 @@ validitySpec
   -> Validity -- ^ expected result
   -> Spec
 validitySpec description pgmPath invariant expected =
-  it description do
-  readAndParseGCL pgmPath >>= \case
-    Left err -> err `shouldBe` "a correct parse"
-    Right pgm ->
-      let closure = getClosure pgm
-          pVCs = getBasicPathVCs pgm
-      in do
-        solver <- newZ3Solver
-        checkValidVCs solver closure invariant pVCs
-          `shouldReturn` expected
+  it description do pending
+  -- readAndParseGCL pgmPath >>= \case
+  --   Left err -> err `shouldBe` "a correct parse"
+  --   Right pgm ->
+  --     let closure = getClosure pgm
+  --         pVCs = getBasicPathVCs pgm
+  --     in do
+  --       solver <- newZ3Solver
+  --       checkValidVCs solver closure invariant pVCs
+  --         `shouldReturn` expected
 
 spec_max_validity :: Spec
 spec_max_validity = validitySpec
@@ -101,13 +77,13 @@ basicpathSpec
   -> [BExp] -- ^ expected VCs
   -> Spec
 basicpathSpec description pgmPath invariant vcs =
-  it description do
-  ePgm <- readAndParseGCL pgmPath
-  case ePgm of
-    Left err -> err `shouldBe` "a correct parse"
-    Right pgm ->
-      specifyInvariant invariant (getBasicPathVCs pgm)
-      `shouldMatchList` vcs
+  it description do pending
+  -- ePgm <- readAndParseGCL pgmPath
+  -- case ePgm of
+  --   Left err -> err `shouldBe` "a correct parse"
+  --   Right pgm ->
+  --     specifyInvariant invariant (getBasicPathVCs pgm)
+  --     `shouldMatchList` vcs
 
 spec_trivial_basicpath :: Spec
 spec_trivial_basicpath = basicpathSpec
@@ -166,14 +142,14 @@ spec_peasants_multiplication_basicpath = basicpathSpec
 -- non file basicpath tests
 spec_simultaneous_assignment_basicpath :: Spec
 spec_simultaneous_assignment_basicpath =
-  it "Simultaneous assignment is not serialized"
-  do getVCs (Var "a" :<=: Var "b") [["a","b"] := [Var "b", Var "a"]]
-       `shouldBe` [Var "b" :<=: Var "a"]
-  where
-    getVCs p stmt =
-      map (uncurry wpSeq)
-      $ specifyInvariant undefined
-      $ getPaths p stmt []
+  it "Simultaneous assignment is not serialized" $ pending
+  -- getVCs (Var "a" :<=: Var "b") [["a","b"] := [Var "b", Var "a"]]
+  --      `shouldBe` [Var "b" :<=: Var "a"]
+  -- where
+  --   getVCs p stmt =
+  --     map (uncurry wpSeq)
+  --     $ specifyInvariant undefined
+  --     $ getPaths p stmt []
 
 -----------------------
 -- Weakest Pre tests --
@@ -192,10 +168,8 @@ spec_wpSubstitute =
 spec_wpSequence :: Spec
 spec_wpSequence =
   it "wp of a sequence of statements is the composition of the statements" do
-  let x = Var "x"
-      y = Var "y"
-      z = Var "z"
-      path =
+  let [x,y,z] = map Var ["x","y","z"]
+      path = reverse
         [ Assume $ x :<=: y
         , Substitute ["y"] [30 :+: 14 :-: x]
         , Substitute ["x"] [17]

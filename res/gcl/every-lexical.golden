@@ -6,11 +6,11 @@ if x == y ->
       y := 7 - y ;
       do @inv()
       [] v > z ->
-            do @inv(ni <= quux) od
-      [] v > z ->
+            do @inv(quux >= ni) od
+      [] z < v ->
             if fi
       od
-[] (baz <= foo) | ~true & 0 > 1 | ((x % 2) == 0) ->
+[] (foo >= baz | ~ true) & (0 > 1 | x % 2 == 0) ->
       z := (4 + 30) - ((x * y) / 24) ;
 [] true ->
       x, y, z := 10, 20, 76 ;

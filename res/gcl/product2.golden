@@ -9,4 +9,4 @@ do @inv()
       od
       m1 := m1 - 1 ;
 od
-@ens(res == (m * n))
+@ens(res == m * n)

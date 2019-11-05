@@ -3,7 +3,10 @@ where
 
 import Control.Monad ((>=>))
 import Control.Monad.Reader hiding ( guard )
+import Control.Monad.State hiding ( guard )
 import Control.Lens ( transform, (^?), over )
+
+import Data.List ( break )
 import Data.Text ( Text )
 import qualified Data.Set as Set
 
@@ -12,17 +15,6 @@ import           Language.GCL.Environment
 import qualified Language.GCL.SMTLib as GCL.SMT
 import           Language.GCL.Syntax.Abstract
 
-data BasicPath
-  = Assume BExp
-  | Substitute [Text] [IExp]
-
-type ParameterizedInvariant = ReaderT BExp []
-instance Semigroup (ParameterizedInvariant a) where
-  (<>) (ReaderT l1) (ReaderT l2) = ReaderT $ \r -> l1 r <> l2 r
-
-specifyInvariant :: BExp -> ParameterizedInvariant a -> [a]
-specifyInvariant = flip runReaderT
-
 -------------------
 -- VC Validation --
 data Validity = Valid | Invalid BExp
@@ -30,9 +22,9 @@ data Validity = Valid | Invalid BExp
 
 checkValidVCs
   :: SMT.Solver -- Solver MVar for SMT
-  -> Set.Set Text -- Program closure
+  -> Set.Set Variable -- Program closure
   -> BExp -- Candidate invariant
-  -> ParameterizedInvariant BExp -- Program invariants
+  -> ParameterizedInvariant [BExp] -- Program invariants
   -> IO Validity
 checkValidVCs solver closure inv pVCs =
   let vcs = specifyInvariant inv pVCs
@@ -51,63 +43,69 @@ checkValidVCs solver closure inv pVCs =
     smtResultsToValidity :: [(BExp, SMT.Result)] -> Validity
     smtResultsToValidity []                     =   Valid
     smtResultsToValidity ((vc, SMT.Sat    ): _) = Invalid vc
-    smtResultsToValidity ((vc, SMT.Unknown): _) = Invalid $ Var "unknown" :<=: Var "result on" :&: vc
+    smtResultsToValidity ((vc, SMT.Unknown): _) = Invalid $ Var_ "unknown"
+                                                  :<=: Var_ "result on" :&: vc
     smtResultsToValidity (( _, SMT.Unsat  ):rs) = smtResultsToValidity rs
 
 -------------------
 -- VC Generation --
--- | Generate all VCs from all basic paths of a program
-getBasicPathVCs :: GCLProgram -> ParameterizedInvariant BExp
-getBasicPathVCs GCLProgram {req , program, ens} =
- let path = maybe [] ((:[]) . Assume) req
-     post = maybe (BConst True) id ens
-     stmts = case program of Seq stmts -> stmts ; stmt -> [stmt]
-  in uncurry wpSeq <$> getPaths post stmts path
+type ParameterizedInvariant = Reader BExp
 
--- | Generate all basic paths and postcondition pairs, parameterized by invariant
-getPaths :: BExp -> [Statement] -> [BasicPath] -> ParameterizedInvariant ([BasicPath],BExp)
-getPaths post [] path = return (path,post)
-getPaths post (stmt:stmts) path
-  = case stmt of
-      vars := exps -> getPaths post stmts $ path ++ [Substitute vars exps]
-      If gcs ->
-        getPaths post stmts (path ++ [Assume $ negateGuards gcs]) -- TODO: maybe change back to break on unsat if
-        <> getPathsGCS post gcs path
-      Do mInv gcs -> do
-        inv <- case mInv of Nothing -> ask ; Just i -> return i
-        return (path, inv) -- cut on previous path
-          <> getPaths post stmts [Assume inv, Assume $ negateGuards gcs] -- post loop path
-          <> getPathsGCS inv gcs [Assume inv] -- loop branch paths
-      Seq stmts' ->
-        -- not convinced this is possible
-        getPaths post (stmts' ++ stmts) path
+specifyInvariant :: BExp -> ParameterizedInvariant a -> a
+specifyInvariant = flip runReader
+
+data BasicInstruction
+  = Assume BExp
+  | Substitute [Variable] [IExp]
+
+
+data Path ins post
+  = Path ins post ::: ins
+  | Postcondition post
+
+data PathTree ins post
+  = PTree ins (Path (PathTree ins post) post)
+
+type GCLBasicPath = Path BasicInstruction BExp
+type GCLBasicPathTree = PathTree
+
+getPathTree :: GCLProgram -> ParameterizedInvariant (PathTree BasicInstruction BExp)
+getPathTree GCLProgram {req, program, ens} =
+  let post = maybe (BConst True) id ens
+      rootF = maybe id (\pre tree -> PTree (Assume pre) (Postcondition post ::: tree)) req 
+  in rootF <$> getPathTree' post program
   where
-    getPathsGCS :: BExp -> GuardedCommandSet -> [BasicPath] -> ParameterizedInvariant ([BasicPath],BExp)
-    getPathsGCS post gcs path = do
-      GC {guard, statement} <- lift $ getCommandList gcs
-      let stmts' = case statement of Seq stmts' -> stmts' ; stmt' -> [stmt']
-      getPaths post (stmts' ++ stmts) (path ++ [(Assume guard)])
+    getPathTree'
+      :: BExp
+      -> [Statement]
+      -> ParameterizedInvariant (PathTree BasicInstruction BExp)
+    getPathTree' post = undefined -- \case
+      -- vs := es : stmts -> PTree ()
 
 -- | calculate the wp of a basic path
-wpSeq :: [BasicPath] -> BExp -> BExp
-wpSeq = foldl (\f ins -> f . wp ins) id
+--   expects path in reverse (stack)
+wpSeq :: [BasicInstruction] -> BExp -> BExp
+wpSeq = foldl (\f ins -> wp ins . f) id
 
 -- | calculate the weakest pre of a single basic instruction
-wp :: BasicPath -> BExp -> BExp
-wp = \case
-  Assume p -> (p :=>:)
-  Substitute vs es -> substitute $ zip vs es
+wp :: BasicInstruction -> BExp -> BExp
+wp path post = case path of
+  Assume p -> (p :=>: post)
+  Substitute vs es -> substitute (zip vs es) post
+  -- BranchPath fPairs -> case fPairs post of
+  --   [] -> post
+  --   pairs -> foldl1 (:&:) $ map (uncurry wpSeq) pairs
 
 -------------
 -- helpers --
-substitute :: [(Text,IExp)] -> BExp -> BExp
+substitute :: [(Variable,IExp)] -> BExp -> BExp
 substitute sub = transform match
   where
     match = \case
       i1 :<=: i2 -> substituteIExp sub i1 :<=: substituteIExp sub i2
       e' -> e'
 
-substituteIExp :: [(Text,IExp)] -> IExp ->IExp
+substituteIExp :: [(Variable, IExp)] -> IExp ->IExp
 substituteIExp sub = transform match
   where
     match = \case

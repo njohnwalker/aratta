@@ -1,0 +1,12 @@
+@req(x >= 0)
+res := 0;
+x0 := 0;
+if x == 0 -> if fi
+[] x == 1 -> res := y;
+[] x >  1 ->
+    do @inv()
+    [] ~ x == x0 -> res, x0 := res + y, x0 - 1;
+    od
+fi
+res := res / y;
+@ens(res == x)

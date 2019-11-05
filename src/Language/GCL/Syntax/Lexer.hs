@@ -14,6 +14,8 @@ import Text.Megaparsec ( Parsec, Token, many, between, try, notFollowedBy, (<|>)
 import qualified Text.Megaparsec.Char as PChar
 import qualified Text.Megaparsec.Char.Lexer as Lex
 
+import Language.GCL.Syntax.Abstract
+
 type Parser = Parsec Void Text
 
 space :: Parser ()
@@ -38,16 +40,17 @@ parentheses :: Parser a -> Parser a
 parentheses = between lparen rparen
 
 ifBlock :: Parser a -> Parser a
-ifBlock = between (symbol "if") $ symbol "fi"
+ifBlock = symbol "if" `between` symbol "fi"
 
-identifier :: Parser Text
+identifier :: Parser Variable
 identifier = lexeme $ try $ p >>= check
   where
-    p       = Data.Text.pack <$> ( (:) <$> PChar.letterChar <*>  many PChar.alphaNumChar )
+    p = Variable . Data.Text.pack
+        <$> ((:) <$> PChar.letterChar <*> many PChar.alphaNumChar)
     check x = if x `elem` rwords
-                then fail $ "keyword " ++ show x
-                     ++ " cannot be an identifier"
-                else return x
+              then fail $ "keyword " ++ show x
+                   ++ " cannot be an identifier"
+              else return x
 
 ---------------
 -- Operators --
@@ -84,10 +87,3 @@ rword w
   = lexeme
   $ try $ PChar.string w
   *> notFollowedBy PChar.alphaNumChar
-
-rwords :: [Text]
-rwords = [ "if", "fi", "do", "od", "true", "false"
-         -- probable (short) SMTLIB reserved words
-         -- anything that fails smt parse in generated tests
-         , "and"
-         ]

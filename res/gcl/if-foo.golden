@@ -6,4 +6,4 @@ if true ->
       y := 2 ;
 fi
 z := 1 ;
-@ens((x <= y) & (y <= z))
+@ens(x <= y & y <= z)

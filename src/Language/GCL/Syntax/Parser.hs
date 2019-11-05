@@ -19,7 +19,7 @@ import Prelude hiding (and, not, or)
 
 import Text.Megaparsec
        ( Parsec, try, notFollowedBy
-       , many, between, eof, (<|>)
+       , many, some, between, eof, (<|>)
        , sepBy, sepEndBy, parse, errorBundlePretty
        , optional
        )
@@ -46,22 +46,19 @@ parseGCL file input = case parse programParser file input of
 programParser :: Parser GCLProgram
 programParser = between space eof block
 
------------
--- GCLProgram --
+-----------------
+-- GCL Program --
 block :: Parser GCLProgram
-block = GCLProgram <$> requires <*> stmt <*> ensures
+block = GCLProgram <$> requires <*> many stmt <*> ensures
   where
     requires, ensures :: Parser (Maybe BExp)
     requires = reqTag *> annotation
     ensures = ensTag *> annotation
+
 ----------------
 -- Statements --
-
 stmt :: Parser Statement
-stmt = Seq <$> many stmt'
-
-stmt' :: Parser Statement
-stmt'
+stmt
   =  assignStmt
  <|> doStmt
  <|> ifStmt
@@ -95,7 +92,7 @@ doGcs :: Parser GuardedCommandSet
 doGcs = GCS <$> many (square *> gc)  
 
 gc :: Parser GuardedCommand
-gc = GC <$> bExp <* arrow <*> stmt
+gc = GC <$> bExp <* arrow <*> some stmt
 
 -----------------
 -- Expressions --

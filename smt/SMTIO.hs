@@ -4,24 +4,24 @@ module SMTIO
   )
 where
 
+import Control.Lens
+
+import qualified Data.Map as Map
 import Data.Set as Set ( Set, toList, null)
 import Data.Text (Text, pack, unpack )
 
 import SimpleSMT
 
-import Language.GCL.Environment ( Env, fromList, initialEnv )
-
-newZ3Solver :: IO Solver
-newZ3Solver = do
-  solver <- newSolver "/usr/bin/z3" ["-smt2", "-in"] Nothing
+newZ3Solver :: Int -> IO Solver
+newZ3Solver timeout = do
+  solver <- newSolver "/usr/bin/z3" ["-smt2", "-in", "-T:" ++ show timeout] Nothing
   setOption solver ":produce-models" "true"
   return solver
               
-
-getModel :: Solver -> Set Text ->  IO Env
-getModel _ set | Set.null set = return initialEnv
+getModel :: Solver -> Set Text ->  IO (Map.Map Text Integer)
+getModel _ set | Set.null set = return Map.empty
 getModel solver closure
-  =   fromList
+  =   Map.fromList
   .   map (\(name, val) -> (pack name, intFromVal val))
   <$> getConsts solver (map unpack $ toList closure)
   where

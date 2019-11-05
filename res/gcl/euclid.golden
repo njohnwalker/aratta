@@ -1,8 +1,8 @@
 @req(true)
 x, y := m, n ;
-if 0 > x ->
+if x < 0 ->
       x := 0 - x ;
-[] 0 > y ->
+[] y < 0 ->
       y := 0 - y ;
 fi
 do @inv()
@@ -11,5 +11,4 @@ do @inv()
 [] y > x ->
       x, y := y, x ;
 od
-@ens((x == y) & (((existsJ * x) == m) & ((existsK * x) ==
-n)))
+@ens(x == y & (existsJ * x == m & existsK * x == n))

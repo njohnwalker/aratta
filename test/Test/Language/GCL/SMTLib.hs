@@ -4,29 +4,31 @@ where
 
 import Control.Monad.IO.Class ( MonadIO )
 import Control.Exception (IOException,  try)
+import Data.GenValidity ( genValid )
 
 import Test.Hspec
 
 import Test.Tasty
 import Test.Tasty.Golden ( goldenVsFile )
 
-import qualified Hedgehog as Hog
+import qualified Test.QuickCheck as QC
+import qualified Test.QuickCheck.Monadic as QC.M
 
-import Data.Set as Set ( fromList )
+import qualified Data.Map as Map
+import qualified Data.Set as Set
 
 import SimpleSMT
 
 import SMTIO
 import                Language.GCL as GCL
-import qualified Test.Language.GCL.Gen as Gen
 
 spec_simpleSMT :: Spec
-spec_simpleSMT = before newZ3Solver $ do
+spec_simpleSMT = before (newZ3Solver 30) $ do
   it "runs a trivial smt solver instance" \_ -> True
 
 spec_simpleBoolToSExpr :: Spec
 spec_simpleBoolToSExpr = let bexp = Var "a" :<=: Var "b"
-  in before newZ3Solver $ do
+  in before (newZ3Solver 30) $ do
   it "runs a simple smt query and \
      \asserts the boolean is satisfied by the model"
      \solver -> do
@@ -35,24 +37,33 @@ spec_simpleBoolToSExpr = let bexp = Var "a" :<=: Var "b"
        env <- getModel solver $ Set.fromList ["a","b"]
        evalBool env bexp `shouldBe` True
 
-hprop_boolToSExpr :: Hog.Property
-hprop_boolToSExpr =  Hog.property $ do
-  solver <- Hog.evalIO newZ3Solver
-  bExp <- Hog.forAll Gen.bool
-  eResult <- hogEvalIOEither $ do
-      boolToSMTAssertionWithHeader solver bExp
-      check solver
-  case eResult of
-    Right Sat -> do
-      eEnv <- hogEvalIOEither $ getModel solver $ getClosureBool bExp
-      case eEnv of
-        Right env -> Hog.assert $ GCL.evalBool env bExp
-        _ -> Hog.discard
-    Right Unsat -> Hog.assert $ Prelude.not $ GCL.evalBoolAny bExp
-    _ -> Hog.discard
 
--- hmmm... encountered hGetContents unreadable bytestring errors
-hogEvalIOEither
-  :: (Hog.MonadTest m, MonadIO m, HasCallStack)
-  => IO a -> m (Either IOException a)
-hogEvalIOEither = Hog.evalIO . try
+spec_boolToSExpr :: Spec
+spec_boolToSExpr = before (newZ3Solver 30) $ do
+  it "generates arbitrary Boolean expressions and checks satisfiability"
+    \solver -> QC.property $ boolToSExprProperty solver  
+  where
+    boolToSExprProperty :: Solver -> BExp -> QC.Property
+    boolToSExprProperty solver bExp = QC.M.monadicIO $ do
+      QC.M.run $ push solver
+      mSMTMatchesEval <- QC.M.run . try $ inNewScope solver $ do
+        boolToSMTAssertionWithHeader solver bExp
+        result <- check solver
+        case result of
+          Sat -> do
+            env <- getModel solver
+              $ Set.map getVariableText
+              $ getClosureBool bExp
+            return $ Just (GCL.evalBool env bExp, Sat)
+          Unsat ->
+            return $ Just (Prelude.not $ GCL.evalBoolAny bExp, Unsat)
+          Unknown -> putStrLn "Unkown result from solver"
+            >> return Nothing
+      case mSMTMatchesEval of
+        Right Nothing -> QC.discard
+        Right (Just (smtMatchesEval, result))  ->
+          return $ QC.label (show result) smtMatchesEval
+        Left (e :: IOException) ->
+          QC.M.run $ putStrLn (show e)
+          >> QC.discard
+

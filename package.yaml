@@ -36,6 +36,10 @@ dependencies:
 - Glob
 - simple-smt
 - streams
+- validity
+- genvalidity
+- genvalidity-text
+- QuickCheck
 
 default-extensions:
 - OverloadedStrings
@@ -58,9 +62,12 @@ default-extensions:
 - TemplateHaskell
 - ScopedTypeVariables
 - TupleSections
+- TypeApplications
 
 library:
-  source-dirs: src
+  source-dirs:
+    - src
+    - smt
 
 executables:
   semantic-run:
@@ -83,7 +90,6 @@ tests:
     main:                Driver.hs
     source-dirs:
       - test
-      - app/smt
     ghc-options:
     - -threaded
     - -rtsopts

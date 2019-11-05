@@ -5,12 +5,10 @@ module Language.GCL
   , module Language.GCL.Semantics.SmallStep
   , module Language.GCL.SMTLib
   , module Language.GCL.Environment
-  , rwords
   )
 where
 
 import Language.GCL.Syntax.Abstract
-import Language.GCL.Syntax.Lexer ( rwords )
 import Language.GCL.Syntax.Parser
 import Language.GCL.Semantics.PredicateTransformer
 import Language.GCL.Semantics.SmallStep

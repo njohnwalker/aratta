@@ -2,4 +2,5 @@
 if x >= y -> m := x ;
 [] y >= x -> m := y ;
 fi
-@ens(m >= x & m >= y)
+n := m ;
+@ens(n >= x & n >= y)
