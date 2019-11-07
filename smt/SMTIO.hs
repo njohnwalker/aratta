@@ -1,10 +1,5 @@
 module SMTIO
-  ( newZ3Solver
-  , getModel
-  )
 where
-
-import Control.Lens
 
 import qualified Data.Map as Map
 import Data.Set as Set ( Set, toList, null)
@@ -17,9 +12,20 @@ newZ3Solver timeout = do
   solver <- newSolver "/usr/bin/z3" ["-smt2", "-in", "-T:" ++ show timeout] Nothing
   setOption solver ":produce-models" "true"
   return solver
-              
+
+newCVC4Solver :: Int -> IO Solver
+newCVC4Solver timeout = do
+  solver <- newSolver "/usr/bin/cvc4"
+            [ "--lang=smt2"
+            , "-i"
+            , "--tlimit-per=" ++ show (timeout * 1000)
+            ] Nothing
+  setOption solver ":produce-models" "true"
+  setLogic solver "QF_NIA"
+  return solver
+
 getModel :: Solver -> Set Text ->  IO (Map.Map Text Integer)
-getModel _ set | Set.null set = return Map.empty
+getModel _ (Set.null -> True) = return Map.empty
 getModel solver closure
   =   Map.fromList
   .   map (\(name, val) -> (pack name, intFromVal val))

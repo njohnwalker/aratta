@@ -38,7 +38,7 @@ integerStream = Stream.iterate (\x-> if x < 0 then x * (-1) + 1 else -(x+1)) 0
 tails = Stream.iterate Stream.tail
 
 makeAnyEnvironment :: Set Text -> Env 
-makeAnyEnvironment = Map.fromList . flip zip [0,0..] . Set.toList
+makeAnyEnvironment = Map.fromList . flip zip [1,1..] . Set.toList
 
 
 -- TODO: convert to `foldmapof sets` instead of lists

@@ -1,4 +1,8 @@
-module Language.GCL.Syntax.Abstract where
+module Language.GCL.Syntax.Abstract
+  ( module Language.GCL.Syntax.Abstract
+  , pretty
+  )
+where
 
 import qualified Control.Monad as M ( guard )
 
@@ -70,7 +74,7 @@ instance Hashable GuardedCommandSet
 
 data GuardedCommand = GC
   { guard :: BExp
-  , statement :: [Statement]
+  , command :: [Statement]
   }
   deriving (Eq, Ord, Show, Generic, Data)
 
@@ -188,9 +192,9 @@ instance Pretty Statement where
       <> "od"
 
 instance Pretty GuardedCommand where
-  pretty GC { guard, statement }
-    = align (pretty guard <+> "->" <> nest 3 (line <> pretty statement))
-  prettyList = vsep . (map (("[]"<+>) .  pretty))
+  pretty GC { guard, command }
+    = align (pretty guard <+> "->" <> nest 3 (line <> pretty command))
+  prettyList = vsep . map (("[]"<+>) .  pretty)
   
 instance Pretty BExp where
   pretty = \case
@@ -306,7 +310,7 @@ instance Validity Variable where
     let varString = unpack var
     in mconcat
     [ check (not $ null varString)
-      "the identified is at least one character long"
+      "the identifier is at least one character long"
     , check (isAlpha (head varString) && isLower (head varString))
       "the identifier begins with a lowercase alphabetical character"
     , check (and [isAlphaNum c | c <- tail varString])
@@ -315,7 +319,10 @@ instance Validity Variable where
 instance GenValid Variable where
   genValid = do
     c <- QC.elements ['a'..'z']
-    cs <- QC.listOf $ QC.elements $ ['a'..'z'] ++ ['0'..'9']
+    cs <- QC.resize 10
+      $ QC.listOf
+      $ QC.elements
+      $ ['a'..'z'] ++ ['0'..'9']
     let var = Variable $ pack $ c:cs
     if var `elem` rwords
       then genValid

@@ -1,0 +1,16 @@
+(declare-const x Int)
+(declare-const y Int)
+(declare-const z Int)
+(declare-const x0 Int)
+(declare-const y0 Int)
+(declare-const z0 Int)
+
+(assert (not (= y 0)))
+(assert (= 0 (+ x x0)))
+(assert (= 0 (+ y y0)))
+
+(assert (= z (mod x y)))
+(assert (= z0 (mod x0 y0)))
+(assert (not (= z z0)))
+(check-sat)
+(get-model)

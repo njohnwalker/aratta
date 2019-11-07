@@ -57,30 +57,53 @@ specifyInvariant = flip runReader
 data BasicInstruction
   = Assume BExp
   | Substitute [Variable] [IExp]
-
+  | BranchInstruction (BExp -> BExp)
 
 data Path ins post
-  = Path ins post ::: ins
+  = ins ::: Path ins post
   | Postcondition post
 
-data PathTree ins post
-  = PTree ins (Path (PathTree ins post) post)
+type BasicPath = Path BasicInstruction BExp
 
-type GCLBasicPath = Path BasicInstruction BExp
-type GCLBasicPathTree = PathTree
-
-getPathTree :: GCLProgram -> ParameterizedInvariant (PathTree BasicInstruction BExp)
+getPathTree :: GCLProgram -> ParameterizedInvariant [BasicPath]
 getPathTree GCLProgram {req, program, ens} =
   let post = maybe (BConst True) id ens
-      rootF = maybe id (\pre tree -> PTree (Assume pre) (Postcondition post ::: tree)) req 
-  in rootF <$> getPathTree' post program
+      kstartingPath = maybe id ((:::) . Assume) req
+  in getPaths post kstartingPath program
   where
-    getPathTree'
+    oPath
+      :: (BasicPath -> BasicPath)
+      ->  BasicInstruction
+      ->  BasicPath -> BasicPath
+    oPath kpath ins path = kpath $ ins ::: path
+
+    getPaths
       :: BExp
+      -> (BasicPath -> BasicPath)
       -> [Statement]
-      -> ParameterizedInvariant (PathTree BasicInstruction BExp)
-    getPathTree' post = undefined -- \case
-      -- vs := es : stmts -> PTree ()
+      -> ParameterizedInvariant [BasicPath]
+    getPaths post kpath = \case
+      vs := es : stmts -> getPaths post (kpath `oPath` Substitute vs es) stmts
+      If gcs : stmts -> do
+        skipIfPath <- getPaths post (kpath `oPath` Assume (negateGuards gcs)) stmts
+        inv <- ask
+        return []
+
+    ifBranches :: BExp -> GuardedCommandSet -> [BExp -> BExp]
+    ifBranches inv (GCS gcs) =
+      let rBranchPaths =
+            [ \post ->
+                specifyInvariant inv
+                $ getPaths' gc id
+            | gc <- gcs
+            ]
+      in []
+
+    getPaths'
+      :: GuardedCommand
+      -> (BasicPath -> BasicPath)
+      -> ParameterizedInvariant [BExp -> BasicPath]
+    getPaths' GC {guard, command} = undefined
 
 -- | calculate the wp of a basic path
 --   expects path in reverse (stack)
@@ -92,10 +115,7 @@ wp :: BasicInstruction -> BExp -> BExp
 wp path post = case path of
   Assume p -> (p :=>: post)
   Substitute vs es -> substitute (zip vs es) post
-  -- BranchPath fPairs -> case fPairs post of
-  --   [] -> post
-  --   pairs -> foldl1 (:&:) $ map (uncurry wpSeq) pairs
-
+  BranchInstruction pt -> pt post
 -------------
 -- helpers --
 substitute :: [(Variable,IExp)] -> BExp -> BExp

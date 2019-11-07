@@ -1,4 +1,9 @@
 module Language.GCL.SMTLib
+  ( module Language.GCL.SMTLib
+  , SMTIO.newCVC4Solver
+  , SMTIO.getModel
+  , SMTIO.newZ3Solver
+  )
 where
 
 import Control.Monad ( forM )
@@ -57,6 +62,10 @@ debugSolverSatCheck :: SMT.Solver -> BExp -> IO ()
 debugSolverSatCheck solver bexp = SMT.inNewScope solver $ do
   boolToSMTAssertionWithHeader solver bexp
   result <- SMT.check solver
+  putStrLn $ unlines
+    [ "Debugging satisfiability of Predicate:"
+    , "\t" ++ show (pretty bexp)
+    ]
   case result of
     SMT.Sat -> do
       env <- SMTIO.getModel solver
@@ -70,7 +79,7 @@ debugSolverSatCheck solver bexp = SMT.inNewScope solver $ do
     SMT.Unsat ->
       putStrLn $ unlines
       [ "SMT: Unsat"
-      , "Eval (with arbitrary environment)"
-        ++ show (Prelude.not $ evalBoolAny bexp)
+      , "(with arbitrary environment)"
+      , "Eval: " ++ show (evalBoolAny $ Not bexp)
       ]
     SMT.Unknown -> putStrLn "Unkown result from solver"

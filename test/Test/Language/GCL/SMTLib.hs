@@ -1,14 +1,13 @@
 module Test.Language.GCL.SMTLib
 where
 
-
 import Control.Monad.IO.Class ( MonadIO )
-import Control.Exception (IOException,  try)
+import Control.Exception (IOException,  try, catch)
 import Data.GenValidity ( genValid )
 
 import Test.Hspec
 
-import Test.Tasty
+import Test.Tasty hiding ( after )
 import Test.Tasty.Golden ( goldenVsFile )
 
 import qualified Test.QuickCheck as QC
@@ -23,47 +22,68 @@ import SMTIO
 import                Language.GCL as GCL
 
 spec_simpleSMT :: Spec
-spec_simpleSMT = before (newZ3Solver 30) $ do
-  it "runs a trivial smt solver instance" \_ -> True
+spec_simpleSMT
+  = before (newZ3Solver 30)
+  $ after (\solver -> stop solver >> return ())
+  $ it "runs a trivial smt solver instance"
+  \_ -> True
 
 spec_simpleBoolToSExpr :: Spec
 spec_simpleBoolToSExpr = let bexp = Var "a" :<=: Var "b"
-  in before (newZ3Solver 30) $ do
-  it "runs a simple smt query and \
+  in before (newZ3Solver 30)
+  $ after (\solver -> stop solver >> return ())
+  $ it "runs a simple smt query and \
      \asserts the boolean is satisfied by the model"
      \solver -> do
        boolToSMTAssertionWithHeader solver bexp
        check solver
        env <- getModel solver $ Set.fromList ["a","b"]
-       evalBool env bexp `shouldBe` True
+       evalBool env bexp `shouldBe` Right True
+
+spec_pathologicalBoolToSExpr :: Spec
+spec_pathologicalBoolToSExpr = let bexp = 1 :==: 0 :*: (0 :/: 0)
+  in before (newZ3Solver 30)
+  $ after (\solver -> stop solver >> return ())
+  $ it "runs a patological division-by-zero smt query and \
+     \asserts the boolean is satisfied by the model"
+     \solver -> do
+       boolToSMTAssertionWithHeader solver bexp
+       check solver
+       evalBoolAny bexp `shouldBe` Right False
 
 
 spec_boolToSExpr :: Spec
-spec_boolToSExpr = before (newZ3Solver 30) $ do
+spec_boolToSExpr = do
+  solver <- runIO $ newCVC4Solver 1
   it "generates arbitrary Boolean expressions and checks satisfiability"
-    \solver -> QC.property $ boolToSExprProperty solver  
+    $ QC.property $ boolToSExprProperty solver
   where
     boolToSExprProperty :: Solver -> BExp -> QC.Property
     boolToSExprProperty solver bExp = QC.M.monadicIO $ do
       QC.M.run $ push solver
-      mSMTMatchesEval <- QC.M.run . try $ inNewScope solver $ do
-        boolToSMTAssertionWithHeader solver bExp
-        result <- check solver
-        case result of
-          Sat -> do
-            env <- getModel solver
-              $ Set.map getVariableText
-              $ getClosureBool bExp
-            return $ Just (GCL.evalBool env bExp, Sat)
-          Unsat ->
-            return $ Just (Prelude.not $ GCL.evalBoolAny bExp, Unsat)
-          Unknown -> putStrLn "Unkown result from solver"
-            >> return Nothing
-      case mSMTMatchesEval of
-        Right Nothing -> QC.discard
-        Right (Just (smtMatchesEval, result))  ->
-          return $ QC.label (show result) smtMatchesEval
-        Left (e :: IOException) ->
-          QC.M.run $ putStrLn (show e)
-          >> QC.discard
-
+      mSMTResult <- QC.M.run $ inNewScope solver $ do
+            boolToSMTAssertionWithHeader solver bExp
+            result <- check solver
+            case result of
+              Sat -> do
+                env <- getModel solver
+                  $ Set.map getVariableText
+                  $ getClosureBool bExp
+                return $ Just $ Just env
+              Unsat -> return $ Just Nothing
+              Unknown -> return Nothing
+      return case mSMTResult of
+        Nothing -> QC.discard
+        Just Nothing ->
+          QC.counterexample
+          "Solver says: Unsat"
+          $ case evalBoolAny $ Not bExp of
+              Left DivZero -> QC.discard
+              Right sat -> sat
+        Just (Just env) ->
+          QC.counterexample
+          ("Solver says: Sat\n\
+           \with model:  "++ show (Map.toList env)
+          ) $ case evalBool env bExp of
+                Left DivZero -> QC.discard
+                Right sat -> sat
