@@ -108,27 +108,33 @@ clipPaths post = clipPaths'
     clipPaths' kpath [] = return [kpath $ maybe Hole Postcondition post]
     clipPaths' kpath (stmt:stmts) = case stmt of
       vs := es -> clipPaths' (kpath `oPath` Substitute vs es) stmts
+
       If gcs -> do
-        kBranchPaths <- ifBranchPaths kpath gcs
+        kBranchPaths <- branchPaths kpath gcs
         remainingPaths <- clipPaths' id stmts
         let (postIfPath, rest)
               = case remainingPaths of
                   []     -> ([],  [])
                   (p:ps) -> ([p], ps)
         return $ (kBranchPaths <*> postIfPath) ++ rest
+
       Do mInv gcs -> do
         inv <- maybe ask return mInv
-        nextPaths <- clipPaths' id stmts
-        internalPaths <- doBranchPaths inv gcs 
+        nextPaths <- clipPaths' (Assume inv :::) stmts
+        kInternalPaths <- branchPaths id gcs
         return $ kpath (Postcondition inv) -- cut previous path
           : nextPaths -- paths after loop
-          ++ internalPaths -- loop interior paths
+          ++ [ (Assume inv :::)
+               $ kInternalPath
+               $ Postcondition inv
+             | kInternalPath <- kInternalPaths
+             ] -- loop interior paths
 
-ifBranchPaths
+branchPaths
   :: (BasicPath -> BasicPath)
   -> GuardedCommandSet
   -> ParameterizedInvariant [BasicPath -> BasicPath]
-ifBranchPaths kpath (GCS gcs) = do
+branchPaths kpath (GCS gcs) = do
   branchPaths <- forM gcs
     $ \GC {guard, command} ->
         clipPaths Nothing (kpath `oPath` Assume guard) command
@@ -137,20 +143,6 @@ ifBranchPaths kpath (GCS gcs) = do
     | branchPath <-
         sequence branchPaths
     ]
-
-doBranchPaths
-  :: BExp -- ^ invariant
-  -> GuardedCommandSet
-  -> ParameterizedInvariant [BasicPath]
-doBranchPaths inv (GCS gcs) = do
-  branchPaths <- forM gcs
-    $ \GC {guard, command} ->
-        clipPaths (Just inv) (Assume guard :::) command
-  return [ Assume inv
-           ::: BranchInstruction branchPath
-           ::: Postcondition (BConst True) -- is this a hack? or okay
-         | branchPath <- sequence branchPaths
-         ]
 
 -- | calculate the wp of a basic path
 wpSeq :: BasicPath -> Either (BExp -> BExp) BExp
@@ -204,17 +196,31 @@ negateGuards (GCS xs)
 instance Pretty BasicInstruction where
   pretty = \case
     Assume p -> "Assume" <+> pretty p
+
     Substitute vs es ->
-      "Substitute" <> line
-      <> indent 2 (vsep $ map pretty $ zip vs es)
+      align
+      $ "Substitute" <> line
+      <> indent 2 (vsep $ zipWith prettySub vs es)
+      where
+        prettySub v e = "@" <> pretty v <+> "->"
+                        <+> pretty e
+
     BranchInstruction branches ->
-      "Branch" <> line
-      <> indent 2 (vsep $ map pretty branches)
+      vsep $ zipWith
+      (\i path -> "Branch" <+> pretty i <> line
+                  <> indent 2 (pretty path)) 
+      [1::Int ..] branches
 
 instance Pretty BasicPath where
   pretty = \case
     Hole -> "{ HOLE }"
     Postcondition p -> "{ Satisfies" <+> pretty p <+> "}"
+
+    b@(BranchInstruction _) ::: path ->
+      "[" <+> hang 0 (pretty b) <> line
+      <> "]" <> line
+      <> pretty path
+
     ins ::: path -> ";" <+> pretty ins <> line
                     <> pretty path
 

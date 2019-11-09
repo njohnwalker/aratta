@@ -1,173 +1,201 @@
 Path 1
-  ; Branch
-    ; Assume false
-    ; Substitute
-      (x, 10)
-    ; Assume x == y
-    ; Substitute
-      (y, y + 1)
-    { HOLE }
-    ; Assume false
-    ; Substitute
-      (x, 10)
-    ; Assume x <= y
-    ; Substitute
-      (y, 7 - y)
-    { Satisfies INVARIANT > PLACEHOLDER }
-    ; Assume false
-    ; Substitute
-      (x, 10)
-    ; Assume (foo >= baz | ~ true) & (0 > 1 | x % 2 == 0)
-    ; Substitute
-      (z, (4 + 30) - ((x * y) / 24))
-    { HOLE }
-    ; Assume false
-    ; Substitute
-      (x, 10)
-    ; Assume true
-    ; Substitute
-      (x, 10)
-      (y, 20)
-      (z, 76)
-    { HOLE }
+  [ Branch 1
+      ; Assume false
+      ; Substitute
+          @x -> 10
+      ; Assume x == y
+      ; Substitute
+          @y -> y + 1
+      { HOLE }
+    Branch 2
+      ; Assume false
+      ; Substitute
+          @x -> 10
+      ; Assume x <= y
+      ; Substitute
+          @y -> 7 - y
+      { Satisfies INVARIANT == PLACEHOLDER }
+    Branch 3
+      ; Assume false
+      ; Substitute
+          @x -> 10
+      ; Assume (foo >= baz | ~ true) & (0 > 1 | x % 2 == 0)
+      ; Substitute
+          @z -> (4 + 30) - ((x * y) / 24)
+      { HOLE }
+    Branch 4
+      ; Assume false
+      ; Substitute
+          @x -> 10
+      ; Assume true
+      ; Substitute
+          @x -> 10
+          @y -> 20
+          @z -> 76
+      { HOLE }
+  ]
   ; Substitute
-    (catdog, c)
+      @catdog -> c
   { Satisfies true }
 Path 2
-  ; Branch
-    ; Assume false
-    ; Substitute
-      (x, 10)
-    ; Assume x == y
-    ; Substitute
-      (y, y + 1)
-    { HOLE }
-    { HOLE }
-    ; Assume false
-    ; Substitute
-      (x, 10)
-    ; Assume (foo >= baz | ~ true) & (0 > 1 | x % 2 == 0)
-    ; Substitute
-      (z, (4 + 30) - ((x * y) / 24))
-    { HOLE }
-    ; Assume false
-    ; Substitute
-      (x, 10)
-    ; Assume true
-    ; Substitute
-      (x, 10)
-      (y, 20)
-      (z, 76)
-    { HOLE }
+  [ Branch 1
+      ; Assume false
+      ; Substitute
+          @x -> 10
+      ; Assume x == y
+      ; Substitute
+          @y -> y + 1
+      { HOLE }
+    Branch 2
+      ; Assume INVARIANT == PLACEHOLDER
+      { HOLE }
+    Branch 3
+      ; Assume false
+      ; Substitute
+          @x -> 10
+      ; Assume (foo >= baz | ~ true) & (0 > 1 | x % 2 == 0)
+      ; Substitute
+          @z -> (4 + 30) - ((x * y) / 24)
+      { HOLE }
+    Branch 4
+      ; Assume false
+      ; Substitute
+          @x -> 10
+      ; Assume true
+      ; Substitute
+          @x -> 10
+          @y -> 20
+          @z -> 76
+      { HOLE }
+  ]
   ; Substitute
-    (catdog, c)
+      @catdog -> c
   { Satisfies true }
 Path 3
-  ; Branch
-    ; Assume false
-    ; Substitute
-      (x, 10)
-    ; Assume x == y
-    ; Substitute
-      (y, y + 1)
-    { HOLE }
-    ; Assume INVARIANT > PLACEHOLDER
-    ; Branch
-      ; Assume v > z
-      { Satisfies quux >= ni }
-      ; Branch
-        
-      { Satisfies INVARIANT > PLACEHOLDER }
-    { Satisfies true }
-    ; Assume false
-    ; Substitute
-      (x, 10)
-    ; Assume (foo >= baz | ~ true) & (0 > 1 | x % 2 == 0)
-    ; Substitute
-      (z, (4 + 30) - ((x * y) / 24))
-    { HOLE }
-    ; Assume false
-    ; Substitute
-      (x, 10)
-    ; Assume true
-    ; Substitute
-      (x, 10)
-      (y, 20)
-      (z, 76)
-    { HOLE }
+  [ Branch 1
+      ; Assume false
+      ; Substitute
+          @x -> 10
+      ; Assume x == y
+      ; Substitute
+          @y -> y + 1
+      { HOLE }
+    Branch 2
+      ; Assume INVARIANT == PLACEHOLDER
+      [ Branch 1
+          ; Assume v > z
+          { Satisfies quux >= ni }
+        Branch 2
+          [ 
+          ]
+          { HOLE }
+      ]
+      { Satisfies INVARIANT == PLACEHOLDER }
+    Branch 3
+      ; Assume false
+      ; Substitute
+          @x -> 10
+      ; Assume (foo >= baz | ~ true) & (0 > 1 | x % 2 == 0)
+      ; Substitute
+          @z -> (4 + 30) - ((x * y) / 24)
+      { HOLE }
+    Branch 4
+      ; Assume false
+      ; Substitute
+          @x -> 10
+      ; Assume true
+      ; Substitute
+          @x -> 10
+          @y -> 20
+          @z -> 76
+      { HOLE }
+  ]
   ; Substitute
-    (catdog, c)
+      @catdog -> c
   { Satisfies true }
 Path 4
-  ; Branch
-    ; Assume false
-    ; Substitute
-      (x, 10)
-    ; Assume x == y
-    ; Substitute
-      (y, y + 1)
-    { HOLE }
-    ; Assume INVARIANT > PLACEHOLDER
-    ; Branch
-      { Satisfies INVARIANT > PLACEHOLDER }
-      ; Branch
-        
-      { Satisfies INVARIANT > PLACEHOLDER }
-    { Satisfies true }
-    ; Assume false
-    ; Substitute
-      (x, 10)
-    ; Assume (foo >= baz | ~ true) & (0 > 1 | x % 2 == 0)
-    ; Substitute
-      (z, (4 + 30) - ((x * y) / 24))
-    { HOLE }
-    ; Assume false
-    ; Substitute
-      (x, 10)
-    ; Assume true
-    ; Substitute
-      (x, 10)
-      (y, 20)
-      (z, 76)
-    { HOLE }
+  [ Branch 1
+      ; Assume false
+      ; Substitute
+          @x -> 10
+      ; Assume x == y
+      ; Substitute
+          @y -> y + 1
+      { HOLE }
+    Branch 2
+      ; Assume INVARIANT == PLACEHOLDER
+      [ Branch 1
+          ; Assume quux >= ni
+          { HOLE }
+        Branch 2
+          [ 
+          ]
+          { HOLE }
+      ]
+      { Satisfies INVARIANT == PLACEHOLDER }
+    Branch 3
+      ; Assume false
+      ; Substitute
+          @x -> 10
+      ; Assume (foo >= baz | ~ true) & (0 > 1 | x % 2 == 0)
+      ; Substitute
+          @z -> (4 + 30) - ((x * y) / 24)
+      { HOLE }
+    Branch 4
+      ; Assume false
+      ; Substitute
+          @x -> 10
+      ; Assume true
+      ; Substitute
+          @x -> 10
+          @y -> 20
+          @z -> 76
+      { HOLE }
+  ]
   ; Substitute
-    (catdog, c)
+      @catdog -> c
   { Satisfies true }
 Path 5
-  ; Branch
-    ; Assume false
-    ; Substitute
-      (x, 10)
-    ; Assume x == y
-    ; Substitute
-      (y, y + 1)
-    { HOLE }
-    ; Assume INVARIANT > PLACEHOLDER
-    ; Branch
-      ; Assume quux >= ni
-      ; Branch
-        
-      { Satisfies true }
-      ; Branch
-        
-      { Satisfies INVARIANT > PLACEHOLDER }
-    { Satisfies true }
-    ; Assume false
-    ; Substitute
-      (x, 10)
-    ; Assume (foo >= baz | ~ true) & (0 > 1 | x % 2 == 0)
-    ; Substitute
-      (z, (4 + 30) - ((x * y) / 24))
-    { HOLE }
-    ; Assume false
-    ; Substitute
-      (x, 10)
-    ; Assume true
-    ; Substitute
-      (x, 10)
-      (y, 20)
-      (z, 76)
-    { HOLE }
+  [ Branch 1
+      ; Assume false
+      ; Substitute
+          @x -> 10
+      ; Assume x == y
+      ; Substitute
+          @y -> y + 1
+      { HOLE }
+    Branch 2
+      ; Assume INVARIANT == PLACEHOLDER
+      [ Branch 1
+          ; Assume quux >= ni
+          [ 
+          ]
+          { Satisfies quux >= ni }
+        Branch 2
+          [ 
+          ]
+          { HOLE }
+      ]
+      { Satisfies INVARIANT == PLACEHOLDER }
+    Branch 3
+      ; Assume false
+      ; Substitute
+          @x -> 10
+      ; Assume (foo >= baz | ~ true) & (0 > 1 | x % 2 == 0)
+      ; Substitute
+          @z -> (4 + 30) - ((x * y) / 24)
+      { HOLE }
+    Branch 4
+      ; Assume false
+      ; Substitute
+          @x -> 10
+      ; Assume true
+      ; Substitute
+          @x -> 10
+          @y -> 20
+          @z -> 76
+      { HOLE }
+  ]
   ; Substitute
-    (catdog, c)
+      @catdog -> c
   { Satisfies true }

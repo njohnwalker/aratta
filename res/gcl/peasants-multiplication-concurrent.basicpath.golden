@@ -1,23 +1,26 @@
 Path 1
   ; Assume x >= 0 & y >= 0
   ; Substitute
-    (a, x)
-    (b, y)
-    (res, 0)
-  { Satisfies INVARIANT > PLACEHOLDER }
+      @a -> x
+      @b -> y
+      @res -> 0
+  { Satisfies INVARIANT == PLACEHOLDER }
 Path 2
+  ; Assume INVARIANT == PLACEHOLDER
   { Satisfies res == x * y }
 Path 3
-  ; Assume INVARIANT > PLACEHOLDER
-  ; Branch
-    ; Assume a > 0 & a % 2 == 1
-    ; Substitute
-      (res, res + b)
-    { Satisfies INVARIANT > PLACEHOLDER }
-    ; Assume a > 0
-    ; Substitute
-      (a, a / 2)
-    ; Substitute
-      (b, b * 2)
-    { Satisfies INVARIANT > PLACEHOLDER }
-  { Satisfies true }
+  ; Assume INVARIANT == PLACEHOLDER
+  [ Branch 1
+      ; Assume a > 0 & a % 2 == 1
+      ; Substitute
+          @res -> res + b
+      { HOLE }
+    Branch 2
+      ; Assume a > 0
+      ; Substitute
+          @a -> a / 2
+      ; Substitute
+          @b -> b * 2
+      { HOLE }
+  ]
+  { Satisfies INVARIANT == PLACEHOLDER }

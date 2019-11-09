@@ -1,17 +1,19 @@
 Path 1
-  ; Branch
-    ; Substitute
-      (x, 1)
-    ; Assume true
-    ; Substitute
-      (y, 1)
-    { HOLE }
-    ; Substitute
-      (x, 1)
-    ; Assume false
-    ; Substitute
-      (y, 2)
-    { HOLE }
+  [ Branch 1
+      ; Substitute
+          @x -> 1
+      ; Assume true
+      ; Substitute
+          @y -> 1
+      { HOLE }
+    Branch 2
+      ; Substitute
+          @x -> 1
+      ; Assume false
+      ; Substitute
+          @y -> 2
+      { HOLE }
+  ]
   ; Substitute
-    (z, 1)
+      @z -> 1
   { Satisfies x <= y & y <= z }

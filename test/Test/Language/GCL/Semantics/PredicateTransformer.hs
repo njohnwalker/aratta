@@ -88,7 +88,7 @@ test_basicpath_golden = do
                 Text.pack
                 ( renderPretty
                 . specifyInvariant
-                  (Var "INVARIANT" :>: Var "PLACEHOLDER")
+                  (Var "INVARIANT" :==: Var "PLACEHOLDER")
                 . getBasicPath )
               ) <$> readAndParseGCL filePath
           )
