@@ -157,8 +157,8 @@ deriving instance Hashable IExp
 ----------------------------------
 -- Pretty-printing GCL programs --
 -- | Render GCL AST to Text
-renderGCLPretty :: GCLProgram -> Text
-renderGCLPretty = renderStrict . layoutSmart defaultGCLLayoutOptions . pretty
+renderPretty :: Pretty a => a -> Text
+renderPretty = renderStrict . layoutSmart defaultGCLLayoutOptions . pretty
   where
     defaultGCLLayoutOptions = LayoutOptions $ AvailablePerLine 60 1.0
 

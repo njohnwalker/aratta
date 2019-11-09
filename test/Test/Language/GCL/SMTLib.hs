@@ -44,7 +44,7 @@ spec_pathologicalBoolToSExpr :: Spec
 spec_pathologicalBoolToSExpr = let bexp = 1 :==: 0 :*: (0 :/: 0)
   in before (newZ3Solver 30)
   $ after (\solver -> stop solver >> return ())
-  $ it "runs a patological division-by-zero smt query and \
+  $ it "runs a pathological division-by-zero smt query and \
      \asserts the boolean is satisfied by the model"
      \solver -> do
        boolToSMTAssertionWithHeader solver bexp

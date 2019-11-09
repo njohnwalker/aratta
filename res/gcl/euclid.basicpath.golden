@@ -1,0 +1,35 @@
+Path 1
+  ; Branch
+    ; Assume true
+    ; Substitute
+      (x, m)
+      (y, n)
+    ; Assume x < 0
+    ; Substitute
+      (x, 0 - x)
+    { HOLE }
+    ; Assume true
+    ; Substitute
+      (x, m)
+      (y, n)
+    ; Assume y < 0
+    ; Substitute
+      (y, 0 - y)
+    { HOLE }
+  { Satisfies INVARIANT > PLACEHOLDER }
+Path 2
+  { Satisfies x == y & (existsJ * x == m & existsK * x ==
+  n) }
+Path 3
+  ; Assume INVARIANT > PLACEHOLDER
+  ; Branch
+    ; Assume x > y
+    ; Substitute
+      (x, x - y)
+    { Satisfies INVARIANT > PLACEHOLDER }
+    ; Assume y > x
+    ; Substitute
+      (x, y)
+      (y, x)
+    { Satisfies INVARIANT > PLACEHOLDER }
+  { Satisfies true }

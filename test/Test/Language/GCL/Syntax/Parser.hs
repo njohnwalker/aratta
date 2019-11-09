@@ -11,7 +11,6 @@ import qualified Data.Text.IO as Text ( readFile )
 import qualified Data.Text.Lazy as TL ( fromStrict )
 import qualified Data.Text.Lazy.Encoding as TL (encodeUtf8)
 
-
 import Test.Hspec
 import Test.Tasty
 import Test.Tasty.Golden ( goldenVsStringDiff, findByExtension )
@@ -29,7 +28,7 @@ test_prettyGCL = do
           (replaceExtension filePath ".golden")
           ( TL.encodeUtf8
             . TL.fromStrict
-            . (either Text.pack renderGCLPretty)
+            . (either Text.pack renderPretty)
             <$> readAndParseGCL filePath
           )
     | filePath <- srcFilePaths
@@ -41,7 +40,7 @@ spec_parseIdentityGCL =
   before parseAllGCLSources $ do
   it "parse . pretty . parse = parse"
      \pathASTPairs -> do
-       [parseGCL path $ renderGCLPretty ast | (path, ast) <- pathASTPairs]
+       [parseGCL path $ renderPretty ast | (path, ast) <- pathASTPairs]
        `shouldMatchList` map (Right . snd) pathASTPairs
   where
     parseAllGCLSources = do

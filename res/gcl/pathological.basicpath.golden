@@ -1,0 +1,67 @@
+Path 1
+  ; Branch
+    ; Branch
+      
+    { HOLE }
+    ; Assume x >= 0
+    ; Substitute
+      (res, 0)
+    ; Substitute
+      (x0, 0)
+    ; Assume x == 1
+    ; Substitute
+      (res, y)
+    { HOLE }
+    ; Assume x >= 0
+    ; Substitute
+      (res, 0)
+    ; Substitute
+      (x0, 0)
+    ; Assume x > 1
+    { Satisfies INVARIANT > PLACEHOLDER }
+  ; Substitute
+    (res, res / y)
+  { Satisfies res == x }
+Path 2
+  ; Branch
+    ; Branch
+      
+    { HOLE }
+    ; Assume x >= 0
+    ; Substitute
+      (res, 0)
+    ; Substitute
+      (x0, 0)
+    ; Assume x == 1
+    ; Substitute
+      (res, y)
+    { HOLE }
+    { HOLE }
+  ; Substitute
+    (res, res / y)
+  { Satisfies res == x }
+Path 3
+  ; Branch
+    ; Branch
+      
+    { HOLE }
+    ; Assume x >= 0
+    ; Substitute
+      (res, 0)
+    ; Substitute
+      (x0, 0)
+    ; Assume x == 1
+    ; Substitute
+      (res, y)
+    { HOLE }
+    ; Assume INVARIANT > PLACEHOLDER
+    ; Branch
+      ; Assume ~ x == x0
+      ; Substitute
+        (res, res + y)
+        (x0, x0 - 1)
+      { Satisfies INVARIANT > PLACEHOLDER }
+    { Satisfies true }
+  ; Substitute
+    (res, res / y)
+  { Satisfies res == x }

@@ -1,0 +1,6 @@
+res/gcl/sort6.gcl:6:1:
+  |
+6 | do @inv ()
+  | ^
+unexpected 'd'
+expecting '%', '*', '+', ',', '-', '/', or ';'

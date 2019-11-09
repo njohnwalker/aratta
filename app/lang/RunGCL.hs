@@ -12,7 +12,7 @@ import Data.Text.Prettyprint.Doc (PageWidth(..), LayoutOptions(..),  pretty, def
 
 import Options.Applicative.MainOptions 
 --import Language.GCL.Syntax.Parser ( parseGCL )
-import Language.GCL ( parseGCL, renderGCLPretty )
+import Language.GCL ( parseGCL, renderPretty )
 import Language.GCL.Semantics.PredicateTransformer ()
 
 
@@ -25,7 +25,5 @@ runGCL srcText options = do
   ; case parseGCL file srcText of
       Left errorOut -> putStr errorOut
       Right pgm -> do
-        T.putStrLn $ renderGCLPretty pgm
+        T.putStrLn $ renderPretty pgm
   }
-
-

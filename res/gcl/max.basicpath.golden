@@ -1,0 +1,13 @@
+Path 1
+  ; Branch
+    ; Assume x >= y
+    ; Substitute
+      (m, x)
+    { HOLE }
+    ; Assume y >= x
+    ; Substitute
+      (m, y)
+    { HOLE }
+  ; Substitute
+    (n, m)
+  { Satisfies n >= x & n >= y }

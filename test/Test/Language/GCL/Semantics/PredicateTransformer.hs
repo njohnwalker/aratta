@@ -1,12 +1,16 @@
 module Test.Language.GCL.Semantics.PredicateTransformer
 where
 
-import SMTIO
+import System.FilePath ( takeBaseName, replaceExtension)
+
+import qualified Data.Text as Text 
 import qualified Data.Text.IO as T.IO
+import qualified Data.Text.Lazy as TL ( fromStrict )
+import qualified Data.Text.Lazy.Encoding as TL (encodeUtf8)
 
 import Test.Hspec
 import Test.Tasty
-import Test.Tasty.Hspec
+import Test.Tasty.Golden ( goldenVsStringDiff, findByExtension )
 
 import Language.GCL
 
@@ -19,22 +23,22 @@ validitySpec
   -> Validity -- ^ expected result
   -> Spec
 validitySpec description pgmPath invariant expected =
-  it description do pending
-  -- readAndParseGCL pgmPath >>= \case
-  --   Left err -> err `shouldBe` "a correct parse"
-  --   Right pgm ->
-  --     let closure = getClosure pgm
-  --         pVCs = getBasicPathVCs pgm
-  --     in do
-  --       solver <- newZ3Solver
-  --       checkValidVCs solver closure invariant pVCs
-  --         `shouldReturn` expected
+  it description do
+  readAndParseGCL pgmPath >>= \case
+    Left err -> err `shouldBe` "a correct parse"
+    Right pgm ->
+      let closure = getClosure pgm
+          pVCs = getBasicPathVCs pgm
+      in do
+        solver <- newZ3Solver 30
+        checkValidVCs solver closure invariant pVCs
+          `shouldReturn` expected
 
 spec_max_validity :: Spec
 spec_max_validity = validitySpec
   "asserts the validity of the max.gcl program's VCs"
   "res/gcl/max.gcl"
-  (BConst undefined)
+  (BConst undefined) -- not evaluated
   Valid
 
 spec_peasants_multiplication_validity :: Spec
@@ -70,86 +74,39 @@ spec_peasants_multiplication_concurrent_validity = validitySpec
 
 ----------------------
 -- Basic Path Tests --
-basicpathSpec
-  :: String -- ^ test description
-  -> FilePath -- ^ gcl source file
-  -> BExp -- ^ candidate invariant for program
-  -> [BExp] -- ^ expected VCs
-  -> Spec
-basicpathSpec description pgmPath invariant vcs =
-  it description do pending
-  -- ePgm <- readAndParseGCL pgmPath
-  -- case ePgm of
-  --   Left err -> err `shouldBe` "a correct parse"
-  --   Right pgm ->
-  --     specifyInvariant invariant (getBasicPathVCs pgm)
-  --     `shouldMatchList` vcs
+test_basicpath_golden :: IO TestTree
+test_basicpath_golden = do
+  srcFilePaths <- findByExtension [".gcl"] "res/gcl"
+  return $ testGroup "Basicpath Golden Tests"
+    [ goldenVsStringDiff
+          (takeBaseName filePath)
+          diffCmd
+          (replaceExtension filePath "basicpath.golden")
+          ( TL.encodeUtf8
+            . TL.fromStrict
+            . (either
+                Text.pack
+                ( renderPretty
+                . specifyInvariant
+                  (Var "INVARIANT" :>: Var "PLACEHOLDER")
+                . getBasicPath )
+              ) <$> readAndParseGCL filePath
+          )
+    | filePath <- srcFilePaths
+    ]
+  where diffCmd ref new = ["diff", "-u", ref, new]
 
-spec_trivial_basicpath :: Spec
-spec_trivial_basicpath = basicpathSpec
-  "VC of program with no branches or loops"
-  "res/gcl/trivial-basicpath.gcl"
-  undefined -- invariant is never evaluated
-  let [x,y,z] = map Var ["x","y","z"]
-  in [ x :<=: y :=>: z :<=: z :-: 7
-       :&: 30 :+: 14 :-: x :<=: z :-: 7
-       :&: 30 :+: 14 :-: x :<=: z
-       :&: z :<=: 10
-     ]
-
-spec_max_basicpaths :: Spec
-spec_max_basicpaths = basicpathSpec
-  "VC of max program (only branches, no loops)"
-  "res/gcl/max.gcl"
-  undefined
-  let [x,y,m] = map Var ["x","y","m"]
-  in [ x :>=: y :=>: x :>=: x :&: x :>=: y
-     , y :>=: x :=>: y :>=: x :&: y :>=: y
-     , Not (x :>=: y) :&: Not (y :>=: x) :=>: m :>=: x :&: m :>=: y
-     ]
-
-spec_if_basicpaths :: Spec
-spec_if_basicpaths = basicpathSpec
-  "VC of program with if statement in between assigns branches correctly"
-  "res/gcl/if-foo.gcl"
-  undefined
-  let [x,y,z] = map Var ["x","y","z"]
-  in [ Not (BConst True) :&: Not (BConst False) :=>: 1 :<=: y :&: y :<=: 1
-     , BConst False :=>: 1 :<=: 2 :&: 2 :<=: 1
-     , BConst True :=>: 1 :<=: 1 :&: 1 :<=: 1
-     ]
-
-spec_peasants_multiplication_basicpath :: Spec
-spec_peasants_multiplication_basicpath = basicpathSpec
-  "VC of peasant's multiplication program (single loop)"
-  "res/gcl/peasants-multiplication.gcl"
-  (a :+: b:+: x :+: y :+: res :<=: 0) -- garbage invariant mentioning all FVs
-  [ x :>=: 0 :&: y :>=: 0 :=>:
-    x :+: y :+: x :+: y :+: 0 :<=: 0
-  , a :+: b :+: x :+: y :+: res :<=: 0 :=>:
-    a :>: 0 :&: a :%: 2 :==: 1 :=>:
-    a :+: b :+: x :+: y :+: (res :+: b) :<=: 0
-  , a :+: b :+: x :+: y :+: res :<=: 0 :=>:
-    a :>: 0 :&: Not (a :%: 2 :==: 1) :=>:
-    a :/: 2 :+: b :*: 2 :+: x :+: y :+: res :<=: 0
-  , a :+: b :+: x :+: y :+: res :<=: 0 :=>:
-    Not (a :>: 0 :&: a :%: 2 :==: 1) :&:
-    Not (a :>: 0 :&: Not (a :%: 2 :==: 1)) :=>:
-    res :==: x :*: y
-  ]
-  where [a,b,x,y,res] = map Var ["a","b","x","y","res"]
-
--- non file basicpath tests
+-- non-golden basicpath tests
 spec_simultaneous_assignment_basicpath :: Spec
 spec_simultaneous_assignment_basicpath =
-  it "Simultaneous assignment is not serialized" $ pending
-  -- getVCs (Var "a" :<=: Var "b") [["a","b"] := [Var "b", Var "a"]]
-  --      `shouldBe` [Var "b" :<=: Var "a"]
-  -- where
-  --   getVCs p stmt =
-  --     map (uncurry wpSeq)
-  --     $ specifyInvariant undefined
-  --     $ getPaths p stmt []
+  it "Simultaneous assignment is not serialized" $ do
+  let [Right actual] = getVCs (Var "a" :<=: Var "b") [["a","b"] := [Var "b", Var "a"]]
+  actual `shouldBe` Var "b" :<=: Var "a"
+  where
+    getVCs p stmt =
+      map wpSeq
+      $ specifyInvariant undefined
+      $ getPaths p stmt
 
 -----------------------
 -- Weakest Pre tests --
@@ -169,21 +126,23 @@ spec_wpSequence :: Spec
 spec_wpSequence =
   it "wp of a sequence of statements is the composition of the statements" do
   let [x,y,z] = map Var ["x","y","z"]
-      path = reverse
+      ensures = z :<=: x :&: y :<=: x :&: y :<=: z :&: z :<=: 10
+      path = fromPostAndList
+        ensures
         [ Assume $ x :<=: y
         , Substitute ["y"] [30 :+: 14 :-: x]
         , Substitute ["x"] [17]
         , Assume $ y :<=: x
         , Substitute ["x"] [z :-: 7]
         ]
-      ensures = z :<=: x :&: y :<=: x :&: y :<=: z :&: z :<=: 10
       weakestPrecondition = x :<=: y
         :=>: 30 :+: 14 :-: x :<=: 17
         :=>: z :<=: z :-: 7
           :&: 30 :+: 14 :-: x :<=: z :-: 7
           :&: 30 :+: 14 :-: x :<=: z
           :&: z :<=: 10
-  wpSeq path ensures `shouldBe` weakestPrecondition
+  let Right actual = wpSeq path
+  actual `shouldBe` weakestPrecondition
 
 ------------------------
 -- Substitution Tests --
