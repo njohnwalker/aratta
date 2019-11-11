@@ -30,9 +30,16 @@ validitySpec description pgmPath invariant expected =
       let closure = getClosure pgm
           pVCs = getBasicPathVCs pgm
       in do
-        solver <- newZ3Solver 30
+        solver <- newCVC4Solver 30
         checkValidVCs solver closure invariant pVCs
           `shouldReturn` expected
+
+spec_if_foo_validity :: Spec
+spec_if_foo_validity = validitySpec
+  "assserts the validity of the if-foo.gcl program's VCs"
+  "res/gcl/if-foo.gcl"
+  (BConst undefined)
+  Valid
 
 spec_max_validity :: Spec
 spec_max_validity = validitySpec
@@ -67,7 +74,12 @@ spec_peasants_multiplication_concurrent_validity = validitySpec
   \peasants-multiplication-concurrent.gcl program's VCs"
   "res/gcl/peasants-multiplication-concurrent.gcl"
 -- invariant a * b + res == x * y
-  (a :*: b :+: res :==: x :*: y :&: a :>=: 0)
+  ( a :*: b :+: res :==: x :*: y
+    :&: a :>=: 0
+    :&: b :>=: 0
+    :&: x :>=: 0
+    :&: y :>=: 0
+    :&: res :>=: 0 )
   Valid
   where [a,b,res,x,y] = map Var ["a","b","res","x","y"]
 
@@ -118,15 +130,15 @@ spec_wpAssume =
 spec_wpSubstitute :: Spec
 spec_wpSubstitute =
   it "wp of substitute statement is the substituted expression" do
-  let exp = (10  :<=: Var "x") :&: BConst True
-      exp' = (10 :<=: 10) :&: BConst True
-  wp (Substitute ["x"] [10]) exp `shouldBe` exp'
+  let post = (10  :<=: Var "x") :&: BConst True
+      expected = (10 :<=: 10) :&: BConst True
+  wp (Substitute ["x"] [10]) post `shouldBe` expected
 
 spec_wpSequence :: Spec
 spec_wpSequence =
   it "wp of a sequence of statements is the composition of the statements" do
   let [x,y,z] = map Var ["x","y","z"]
-      ensures = z :<=: x :&: y :<=: x :&: y :<=: z :&: z :<=: 10
+      ensures = z :==: x :&: y :<=: x :&: y :>=: z :&: z :<: 10
       path = fromPostAndList
         ensures
         [ Assume $ x :<=: y
@@ -137,12 +149,43 @@ spec_wpSequence =
         ]
       weakestPrecondition = x :<=: y
         :=>: 30 :+: 14 :-: x :<=: 17
-        :=>: z :<=: z :-: 7
+        :=>: z :==: z :-: 7
           :&: 30 :+: 14 :-: x :<=: z :-: 7
-          :&: 30 :+: 14 :-: x :<=: z
-          :&: z :<=: 10
+          :&: 30 :+: 14 :-: x :>=: z
+          :&: z :<: 10
   let Right actual = wpSeq path
   actual `shouldBe` weakestPrecondition
+
+spec_wpBranch :: Spec
+spec_wpBranch =
+  it "wp of branch with holes is the conjunction of each paths"
+  let [x,y,z] = map Var ["x","y","z"]
+      branch1 = Assume (x :>: 0) ::: Substitute ["y"] [x] ::: Hole
+      branch2 = Assume (x :<: 0) ::: Substitute ["y"] [0 :-: x] ::: Hole
+      path =
+        Assume (y :==: 0) :::
+        BranchInstruction [branch1, branch2] :::
+        Postcondition (y :>=: 0)
+      Right actual = wpSeq path 
+  in actual `shouldBe`
+     (y :==: 0 :=>: (
+         (x :>: 0 :=>: (x :>=: 0))
+         :&: (x :<: 0 :=>: (0 :-: x) :>=: 0)
+         )
+     )
+
+spec_wpSingleBranch :: Spec
+spec_wpSingleBranch =
+  it "wp of branch instruction with single branch"
+  let [x,y,z] = map Var ["x","y","z"]
+      branch = Assume (x :>: 0) ::: Substitute ["y"] [x] ::: Hole
+      path =
+        Assume (y :==: 0) :::
+        BranchInstruction [branch] :::
+        Postcondition (y :>=: 0)
+      Right actual = wpSeq path 
+  in actual `shouldBe`
+     (y :==: 0 :=>: (x :>: 0 :=>: (x :>=: 0)))
 
 ------------------------
 -- Substitution Tests --
@@ -163,23 +206,23 @@ spec_substituteIExpIdentity =
 spec_substitute :: Spec
 spec_substitute =
   it "substitute replaces variable occurences with expression" do
-  let exp = (10 :<=: Var "x") :&: BConst True
-      exp' = (10 :<=: 10) :&: BConst True
+  let exp = (10 :==: Var "x") :&: BConst True
+      exp' = (10 :==: 10) :&: BConst True
   substitute [("x", 10)] exp `shouldBe` exp'
 
 spec_substituteIdentity :: Spec
 spec_substituteIdentity =
   it "substitute terminates on identity substitution" do
-  let exp = (10 :<=: Var "x") :&: BConst True
+  let exp = (10 :>: Var "x") :&: BConst True
   substitute [("x", Var "x")] exp `shouldBe` exp
 
 spec_substitute_contrived :: Spec
 spec_substitute_contrived =
   it "substitute performs a nested, multiple, non-idempotent substitution" do
-  let exp = (Var "x" :<=: 22)
+  let exp = (Var "x" :==: 22)
             :&: Not (Not (Var "z" :<=: (Var "x" :-: (0 :-: 12)))
-                     :&: Not (Not (Var "x" :<=: Var "x")))
-      exp' = ((42 :-: Var "x") :<=: 22)
+                     :&: Not (Not (Var "x" :==: Var "x")))
+      exp' = ((42 :-: Var "x") :==: 22)
              :&: Not (Not (Var "z" :<=: ((42 :-: Var "x") :-: (0 :-: 12)))
-                      :&: Not (Not ((42 :-: Var "x") :<=: (42 :-: Var "x"))))
+                      :&: Not (Not ((42 :-: Var "x") :==: (42 :-: Var "x"))))
   substitute [("x", 42 :-: Var "x")] exp `shouldBe` exp'

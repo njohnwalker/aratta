@@ -21,10 +21,6 @@ Path 1
   { Satisfies INVARIANT == PLACEHOLDER }
 Path 2
   ; Assume INVARIANT == PLACEHOLDER
-  { Satisfies x == y & (existsJ * x == m & existsK * x ==
-  n) }
-Path 3
-  ; Assume INVARIANT == PLACEHOLDER
   [ Branch 1
       ; Assume x > y
       ; Substitute
@@ -38,3 +34,8 @@ Path 3
       { HOLE }
   ]
   { Satisfies INVARIANT == PLACEHOLDER }
+Path 3
+  ; Assume INVARIANT == PLACEHOLDER
+  ; Assume ~ x > y & ~ y > x
+  { Satisfies x == y & (existsJ * x == m & existsK * x ==
+  n) }

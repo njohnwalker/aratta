@@ -42,7 +42,14 @@ Path 2
       { HOLE }
     Branch 3
       ; Assume INVARIANT == PLACEHOLDER
-      { HOLE }
+      [ Branch 1
+          ; Assume ~ x == x0
+          ; Substitute
+              @res -> res + y
+              @x0 -> x0 - 1
+          { HOLE }
+      ]
+      { Satisfies INVARIANT == PLACEHOLDER }
   ]
   ; Substitute
       @res -> res / y
@@ -64,14 +71,8 @@ Path 3
       { HOLE }
     Branch 3
       ; Assume INVARIANT == PLACEHOLDER
-      [ Branch 1
-          ; Assume ~ x == x0
-          ; Substitute
-              @res -> res + y
-              @x0 -> x0 - 1
-          { HOLE }
-      ]
-      { Satisfies INVARIANT == PLACEHOLDER }
+      ; Assume ~ ~ x == x0
+      { HOLE }
   ]
   ; Substitute
       @res -> res / y

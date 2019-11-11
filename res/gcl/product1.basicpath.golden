@@ -6,9 +6,6 @@ Path 1
   { Satisfies INVARIANT == PLACEHOLDER }
 Path 2
   ; Assume INVARIANT == PLACEHOLDER
-  { Satisfies res == m * n }
-Path 3
-  ; Assume INVARIANT == PLACEHOLDER
   [ Branch 1
       ; Assume m1 < m
       ; Substitute
@@ -16,16 +13,7 @@ Path 3
       { Satisfies INVARIANT == PLACEHOLDER }
   ]
   { Satisfies INVARIANT == PLACEHOLDER }
-Path 4
-  ; Assume INVARIANT == PLACEHOLDER
-  [ Branch 1
-      ; Assume INVARIANT == PLACEHOLDER
-      ; Substitute
-          @m1 -> m1 + 1
-      { HOLE }
-  ]
-  { Satisfies INVARIANT == PLACEHOLDER }
-Path 5
+Path 3
   ; Assume INVARIANT == PLACEHOLDER
   [ Branch 1
       ; Assume INVARIANT == PLACEHOLDER
@@ -39,3 +27,17 @@ Path 5
       { Satisfies INVARIANT == PLACEHOLDER }
   ]
   { Satisfies INVARIANT == PLACEHOLDER }
+Path 4
+  ; Assume INVARIANT == PLACEHOLDER
+  [ Branch 1
+      ; Assume INVARIANT == PLACEHOLDER
+      ; Assume ~ n1 < n
+      ; Substitute
+          @m1 -> m1 + 1
+      { HOLE }
+  ]
+  { Satisfies INVARIANT == PLACEHOLDER }
+Path 5
+  ; Assume INVARIANT == PLACEHOLDER
+  ; Assume ~ m1 < m
+  { Satisfies res == m * n }

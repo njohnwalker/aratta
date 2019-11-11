@@ -7,7 +7,8 @@ import Control.Monad.State hiding ( guard )
 import Control.Lens ( transform, (^?), over )
 
 import           Data.Data
-import           Data.List ( break )
+import           Data.Data.Lens ( biplate )
+import           Data.List ( find, break )
 import qualified Data.Set as Set
 import           Data.Text ( Text )
 import           Data.Text.Prettyprint.Doc
@@ -21,7 +22,7 @@ import           Language.GCL.Syntax.Abstract
 
 -------------------
 -- VC Validation --
-data Validity = Valid | Invalid BExp
+data Validity = Valid | Invalid BExp Env
   deriving (Eq, Ord, Show)
 
 checkValidVCs
@@ -36,21 +37,24 @@ checkValidVCs solver closure inv pVCs =
   in SMT.inNewScope solver $ do
     GCL.SMT.declareHeader solver fullClosure
     SMT.push solver
-    results <- forM vcs $ \vc -> do
+    results <- forM vcs \vc -> do
       SMT.push solver
       GCL.SMT.boolToSMTAssertion solver $ Not vc
-      res <- SMT.check solver
+      smtRes <- SMT.check solver
+      validityRes <- case smtRes of
+        SMT.Sat ->
+          Invalid vc <$> GCL.SMT.getModel solver
+                   (Set.map getVariableText fullClosure)         
+        SMT.Unsat -> return Valid
+        SMT.Unknown -> return $ Invalid
+          ( Var "unknown" :==: Var "result on" :=>: vc)
+          mempty
       SMT.pop solver
-      return (vc, res)
-    return $ smtResultsToValidity results
-  where
-    smtResultsToValidity :: [(BExp, SMT.Result)] -> Validity
-    smtResultsToValidity []                     =   Valid
-    smtResultsToValidity ((vc, SMT.Sat    ): _) = Invalid vc
-    smtResultsToValidity ((vc, SMT.Unknown): _) = Invalid $ Var_ "unknown"
-                                                  :<=: Var_ "result on" :&: vc
-    smtResultsToValidity (( _, SMT.Unsat  ):rs) = smtResultsToValidity rs
-
+      return validityRes
+    return $ maybe Valid id
+      $ find \case Valid -> False ; _ -> True
+      results
+    
 -------------------
 -- VC Generation --
 type ParameterizedInvariant = Reader BExp
@@ -120,15 +124,19 @@ clipPaths post = clipPaths'
 
       Do mInv gcs -> do
         inv <- maybe ask return mInv
-        nextPaths <- clipPaths' (Assume inv :::) stmts
+        nextPaths <- clipPaths'
+          ((Assume inv :::)
+           `oPath` (Assume (negateGuards gcs)))
+          stmts
         kInternalPaths <- branchPaths id gcs
         return $ kpath (Postcondition inv) -- cut previous path
-          : nextPaths -- paths after loop
-          ++ [ (Assume inv :::)
+          : [ (Assume inv :::)
                $ kInternalPath
                $ Postcondition inv
              | kInternalPath <- kInternalPaths
              ] -- loop interior paths
+          ++ nextPaths -- paths after loop
+
 
 branchPaths
   :: (BasicPath -> BasicPath)
@@ -150,9 +158,9 @@ wpSeq = foldPath wp id
 
 foldPath
   :: (ins -> post -> post)
-  -> (post -> post')
+  -> (post -> post)
   -> Path post ins
-  -> Either (post -> post') post'
+  -> Either (post -> post) post
 foldPath pt kpost = \case
   Hole -> Left kpost
   Postcondition post -> Right $ kpost post
@@ -172,11 +180,7 @@ wp path post = case path of
 -------------
 -- helpers --
 substitute :: [(Variable,IExp)] -> BExp -> BExp
-substitute sub = transform match
-  where
-    match = \case
-      i1 :<=: i2 -> substituteIExp sub i1 :<=: substituteIExp sub i2
-      e' -> e'
+substitute sub = over biplate $ substituteIExp sub
 
 substituteIExp :: [(Variable, IExp)] -> IExp ->IExp
 substituteIExp sub = transform match

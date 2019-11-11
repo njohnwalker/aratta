@@ -48,7 +48,15 @@ Path 2
       { HOLE }
     Branch 2
       ; Assume INVARIANT == PLACEHOLDER
-      { HOLE }
+      [ Branch 1
+          ; Assume v > z
+          { Satisfies quux >= ni }
+        Branch 2
+          [ 
+          ]
+          { HOLE }
+      ]
+      { Satisfies INVARIANT == PLACEHOLDER }
     Branch 3
       ; Assume false
       ; Substitute
@@ -83,7 +91,9 @@ Path 3
     Branch 2
       ; Assume INVARIANT == PLACEHOLDER
       [ Branch 1
-          ; Assume v > z
+          ; Assume quux >= ni
+          [ 
+          ]
           { Satisfies quux >= ni }
         Branch 2
           [ 
@@ -126,6 +136,7 @@ Path 4
       ; Assume INVARIANT == PLACEHOLDER
       [ Branch 1
           ; Assume quux >= ni
+          ; Assume true
           { HOLE }
         Branch 2
           [ 
@@ -166,17 +177,8 @@ Path 5
       { HOLE }
     Branch 2
       ; Assume INVARIANT == PLACEHOLDER
-      [ Branch 1
-          ; Assume quux >= ni
-          [ 
-          ]
-          { Satisfies quux >= ni }
-        Branch 2
-          [ 
-          ]
-          { HOLE }
-      ]
-      { Satisfies INVARIANT == PLACEHOLDER }
+      ; Assume ~ v > z & ~ z < v
+      { HOLE }
     Branch 3
       ; Assume false
       ; Substitute

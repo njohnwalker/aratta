@@ -7,9 +7,6 @@ Path 1
   { Satisfies INVARIANT == PLACEHOLDER }
 Path 2
   ; Assume INVARIANT == PLACEHOLDER
-  { Satisfies res == x * y }
-Path 3
-  ; Assume INVARIANT == PLACEHOLDER
   [ Branch 1
       ; Assume a > 0 & a % 2 == 1
       ; Substitute
@@ -26,3 +23,7 @@ Path 3
       { HOLE }
   ]
   { Satisfies INVARIANT == PLACEHOLDER }
+Path 3
+  ; Assume INVARIANT == PLACEHOLDER
+  ; Assume ~ (a > 0 & a % 2 == 1) & ~ (a > 0 & ~ a % 2 == 1)
+  { Satisfies res == x * y }

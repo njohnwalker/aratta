@@ -1,10 +1,12 @@
 @req(x >= 0 & y >= 0)
 a, b, res := x, y, 0 ;
 do @inv()
-[] a > 0 & a % 2 == 1 ->
-      res := res + b ;
 [] a > 0 ->
-      a := a / 2 ;
+      if a % 2 == 1 ->
+            res := res + b ;
+      [] true ->
+            a := a / 2 ;
+      fi
       b := b * 2 ;
 od
 @ens(res == x * y)
