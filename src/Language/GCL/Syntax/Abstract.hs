@@ -104,10 +104,7 @@ infixr 3 :&:
 infix 4 :<=:, :>:, :<:, :>=:, :==:
 
 newtype Variable = Variable Text
-  deriving (Eq, Ord, Generic, Data)
-instance Show Variable where
-  show (Variable var) = "Variable "<> show var
-
+  deriving (Eq, Ord, Show, Generic, Data)
 
 instance IsString Variable where
   fromString = Variable . pack
@@ -121,7 +118,7 @@ rwords :: [Variable]
 rwords = [ "if", "fi", "do", "od", "true", "false"]
 
 data IExp
-  = Var Variable -- TODO: support existentials in verification annotations
+  = Var Variable
   | IConst Integer
   | IExp :+: IExp
   | IExp :-: IExp
