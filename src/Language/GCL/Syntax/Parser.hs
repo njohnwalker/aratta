@@ -1,6 +1,7 @@
 module Language.GCL.Syntax.Parser
   ( readAndParseGCL
   , parseGCL
+  , parseGCLInvariantList
   , programParser
   , ifGcs
   , doGcs
@@ -20,7 +21,7 @@ import Prelude hiding (and, not, or)
 import Text.Megaparsec
        ( Parsec, try, notFollowedBy
        , many, some, between, eof, (<|>)
-       , sepBy, sepEndBy, parse, errorBundlePretty
+       , sepBy, sepBy1, sepEndBy, parse, errorBundlePretty
        , optional
        )
 
@@ -46,15 +47,26 @@ parseGCL file input = case parse programParser file input of
 programParser :: Parser GCLProgram
 programParser = between space eof block
 
+---------------------------
+-- Invariant File Parser --
+parseGCLInvariantList :: String -> Text -> Either String [BExp]
+parseGCLInvariantList file input =
+  either (Left . errorBundlePretty) Right
+  $ parse invariantListParser file input
+
+invariantListParser :: Parser [BExp]
+invariantListParser = between space eof (sepBy1 bExp space)
+
 -----------------
 -- GCL Program --
 block :: Parser GCLProgram
 block = GCLProgram <$> requires <*> many stmt <*> ensures
   where
-    requires, ensures :: Parser (Maybe BExp)
-    requires = reqTag *> annotation
-    ensures = ensTag *> annotation
-
+    requires, ensures :: Parser BExp
+    requires = reqTag *> trueOrAnnotation
+    ensures = ensTag *> trueOrAnnotation 
+    trueOrAnnotation =
+      (maybe (BConst True) id <$> annotation)
 ----------------
 -- Statements --
 stmt :: Parser Statement
@@ -148,4 +160,4 @@ ltRExp  = (:<:) <$> try (iExp <* lessthan) <*> iExp
 gtRExp  = (:>:) <$> try (iExp <* greaterthan) <*> iExp
 
 annotation :: Parser (Maybe BExp)
-annotation = parentheses $ optional bExp
+annotation = (parentheses $ optional bExp)

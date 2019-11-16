@@ -40,6 +40,8 @@ dependencies:
 - genvalidity
 - genvalidity-text
 - QuickCheck
+- directory
+- stm
 
 default-extensions:
 - OverloadedStrings

@@ -36,16 +36,10 @@ newCVC4SolverWithLogger timeout = do
             , "--tlimit-per=" ++ show (timeout * 1000)
             ] $ Just logger
   setLogic solver "QF_NIA"
+  setOption solver ":produce-assertions" "true"
   return solver
 
-
-getModel :: Solver -> Set Text ->  IO (Map.Map Text Integer)
-getModel _ (Set.null -> True) = return Map.empty
-getModel solver closure
-  =   Map.fromList
-  .   map (\(name, val) -> (pack name, intFromVal val))
-  <$> getConsts solver (map unpack $ toList closure)
-  where
-    intFromVal :: Value -> Integer
-    intFromVal (Int i) = i
-    intFromVal _ = error "Model contains non-integer constants"
+debugAssertions :: Solver -> IO ()
+debugAssertions solver =
+  command solver (Atom "(get-assertions)")
+  >> return ()

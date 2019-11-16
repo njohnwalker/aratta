@@ -1,29 +1,39 @@
-Path 1
-  ; Assume x >= 0 & y >= 0
+Path 1:
+  { PRE: x >= 0 & y >= 0 }
   ; Substitute
       @a -> x
       @b -> y
       @res -> 0
-  { Satisfies INVARIANT == PLACEHOLDER }
-Path 2
-  ; Assume INVARIANT == PLACEHOLDER
-  [ Branch 1
-      ; Assume a > 0 & a % 2 == 1
-      ; Substitute
-          @res -> res + b
-      ; Substitute
-          @a -> a / 2
-          @b -> b * 2
-      { HOLE }
-    Branch 2
-      ; Assume a > 0 & ~ a % 2 == 1
-      ; Substitute
-          @a -> a / 2
-          @b -> b * 2
-      { HOLE }
-  ]
-  { Satisfies INVARIANT == PLACEHOLDER }
-Path 3
-  ; Assume INVARIANT == PLACEHOLDER
+  { POST: INVARIANT == PLACEHOLDER }
+Path 2:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume (a > 0 & a % 2 == 1) & (a > 0 & ~ a % 2 == 1)
+  ; Substitute
+      @res -> res + b
+  ; Substitute
+      @a -> a / 2
+      @b -> b * 2
+  ; Substitute
+      @a -> a / 2
+      @b -> b * 2
+  { POST: INVARIANT == PLACEHOLDER }
+Path 3:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume (a > 0 & a % 2 == 1) & ~ (a > 0 & ~ a % 2 == 1)
+  ; Substitute
+      @res -> res + b
+  ; Substitute
+      @a -> a / 2
+      @b -> b * 2
+  { POST: INVARIANT == PLACEHOLDER }
+Path 4:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume ~ (a > 0 & a % 2 == 1) & (a > 0 & ~ a % 2 == 1)
+  ; Substitute
+      @a -> a / 2
+      @b -> b * 2
+  { POST: INVARIANT == PLACEHOLDER }
+Path 5:
+  { PRE: INVARIANT == PLACEHOLDER }
   ; Assume ~ (a > 0 & a % 2 == 1) & ~ (a > 0 & ~ a % 2 == 1)
-  { Satisfies res == x * y }
+  { POST: res == x * y }

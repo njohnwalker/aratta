@@ -1,0 +1,72 @@
+Path 1:
+  { PRE: x >= 0 & (y >= 0 & z >= 0) }
+  ; Assume (x > 0 & y > 0) & z > 0
+  ; Substitute
+      @x -> x - x
+  ; Substitute
+      @y -> y - y
+  ; Substitute
+      @z -> z - z
+  ; Substitute
+      @z -> (x + y) + z
+  { POST: x == 0 & (y == 0 & z == 0) }
+Path 2:
+  { PRE: x >= 0 & (y >= 0 & z >= 0) }
+  ; Assume (x > 0 & y > 0) & ~ z > 0
+  ; Substitute
+      @x -> x - x
+  ; Substitute
+      @y -> y - y
+  ; Substitute
+      @z -> (x + y) + z
+  { POST: x == 0 & (y == 0 & z == 0) }
+Path 3:
+  { PRE: x >= 0 & (y >= 0 & z >= 0) }
+  ; Assume (x > 0 & ~ y > 0) & z > 0
+  ; Substitute
+      @x -> x - x
+  ; Substitute
+      @z -> z - z
+  ; Substitute
+      @z -> (x + y) + z
+  { POST: x == 0 & (y == 0 & z == 0) }
+Path 4:
+  { PRE: x >= 0 & (y >= 0 & z >= 0) }
+  ; Assume (x > 0 & ~ y > 0) & ~ z > 0
+  ; Substitute
+      @x -> x - x
+  ; Substitute
+      @z -> (x + y) + z
+  { POST: x == 0 & (y == 0 & z == 0) }
+Path 5:
+  { PRE: x >= 0 & (y >= 0 & z >= 0) }
+  ; Assume (~ x > 0 & y > 0) & z > 0
+  ; Substitute
+      @y -> y - y
+  ; Substitute
+      @z -> z - z
+  ; Substitute
+      @z -> (x + y) + z
+  { POST: x == 0 & (y == 0 & z == 0) }
+Path 6:
+  { PRE: x >= 0 & (y >= 0 & z >= 0) }
+  ; Assume (~ x > 0 & y > 0) & ~ z > 0
+  ; Substitute
+      @y -> y - y
+  ; Substitute
+      @z -> (x + y) + z
+  { POST: x == 0 & (y == 0 & z == 0) }
+Path 7:
+  { PRE: x >= 0 & (y >= 0 & z >= 0) }
+  ; Assume (~ x > 0 & ~ y > 0) & z > 0
+  ; Substitute
+      @z -> z - z
+  ; Substitute
+      @z -> (x + y) + z
+  { POST: x == 0 & (y == 0 & z == 0) }
+Path 8:
+  { PRE: x >= 0 & (y >= 0 & z >= 0) }
+  ; Assume (~ x > 0 & ~ y > 0) & ~ z > 0
+  ; Substitute
+      @z -> (x + y) + z
+  { POST: x == 0 & (y == 0 & z == 0) }

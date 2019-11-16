@@ -1,4 +1,4 @@
-@req()
+@req(true)
 if x >= y ->
       m := x ;
 [] y >= x ->

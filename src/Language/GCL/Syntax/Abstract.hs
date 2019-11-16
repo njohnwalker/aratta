@@ -1,6 +1,7 @@
 module Language.GCL.Syntax.Abstract
   ( module Language.GCL.Syntax.Abstract
   , pretty
+  , prettyList
   )
 where
 
@@ -47,12 +48,12 @@ iexp ::= var | const
        | iexp :-: iexp
 
 -}
-
 data GCLProgram = GCLProgram
-  { req :: Maybe BExp
+  { req :: BExp
   , program :: [Statement]
-  , ens :: Maybe BExp
-  } deriving (Eq, Ord, Show, Generic, Data)
+  , ens :: BExp
+  }
+  deriving (Eq, Ord, Show, Generic, Data)
 
 instance Hashable GCLProgram
 
@@ -95,25 +96,29 @@ data BExp
   | IExp :==: IExp
   deriving (Eq, Ord, Show, Generic, Data)
 
+pattern True_ = BConst True
+pattern False_ = BConst False
+
 infixr 2 :=>:, :|:
 infixr 3 :&:
 infix 4 :<=:, :>:, :<:, :>=:, :==:
 
-newtype Variable = Variable { getVariableText :: Text }
-  deriving (Eq, Ord, Show, Generic, Data)
+newtype Variable = Variable Text
+  deriving (Eq, Ord, Generic, Data)
+instance Show Variable where
+  show (Variable var) = "Variable "<> show var
+
 
 instance IsString Variable where
   fromString = Variable . pack
 
+instance Semigroup Variable where
+ Variable v1 <>  Variable v2 = Variable $ v1 <> v2
+
 instance Hashable Variable
-pattern Var_ var = Var (Variable var) 
 
 rwords :: [Variable]
-rwords = [ "if", "fi", "do", "od", "true", "false"
-         -- probable (short) SMTLIB reserved words
-         -- anything that fails smt parse in generated tests
-         , "and"
-         ]
+rwords = [ "if", "fi", "do", "od", "true", "false"]
 
 data IExp
   = Var Variable -- TODO: support existentials in verification annotations
@@ -127,13 +132,6 @@ data IExp
 infixl 6 :-:, :+:
 infixl 7 :*:, :/:, :%:
 
-makeClassy_ ''GCLProgram
-makeClassy_ ''GuardedCommand
-makeClassy_ ''GuardedCommandSet
-
-makePrisms ''IExp
-makePrisms ''BExp
-makePrisms ''Statement
 
 instance Num IExp where
   i + j = i :+: j
@@ -157,8 +155,8 @@ deriving instance Hashable IExp
 ----------------------------------
 -- Pretty-printing GCL programs --
 -- | Render GCL AST to Text
-renderPretty :: Pretty a => a -> Text
-renderPretty = renderStrict . layoutSmart defaultGCLLayoutOptions . pretty
+renderPretty :: Doc a -> Text
+renderPretty = renderStrict . layoutSmart defaultGCLLayoutOptions
   where
     defaultGCLLayoutOptions = LayoutOptions $ AvailablePerLine 60 1.0
 
@@ -210,6 +208,9 @@ instance Pretty BExp where
     e1 :>=: e2 -> prettyRelBinop ">=" e1 e2
     e1 :==: e2 -> prettyRelBinop "==" e1 e2
 
+  -- for invariant lists
+  prettyList = vsep . map pretty
+
 instance Pretty IExp where
   pretty = \case
     Var txt -> pretty txt
@@ -259,7 +260,7 @@ prettyBoolBinop op e1 e2 =
 instance Validity BExp
 
 instance QC.Arbitrary BExp where
-  arbitrary = genValid
+  arbitrary = QC.resize 5 genValid
   shrink = shrinkValid
 
 instance GenValid BExp where
@@ -295,8 +296,8 @@ instance GenValid IExp where
       else QC.scale (subtract 1)
           let size' = min size 1
           in QC.frequency
-             [ (     5, Var <$> genValid )
-             , (     5, IConst <$> genValid )
+             [ (     10, Var <$> genValid )
+             , (     10, IConst <$> genValid )
              , ( size', (:+:)  <$> genValid <*> genValid )
              , ( size', (:-:)  <$> genValid <*> genValid )
              , ( size', (:*:) <$> genValid <*> genValid )

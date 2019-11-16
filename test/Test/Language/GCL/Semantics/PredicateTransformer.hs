@@ -15,38 +15,38 @@ import Test.Tasty.Golden ( goldenVsStringDiff, findByExtension )
 import Language.GCL
 
 ------------------------
--- VC validity checks --
+-- VC Validity Tests --
 validitySpec
-  :: String -- ^ test description
-  -> FilePath -- ^ gcl source file
-  -> BExp -- ^ candidate invariant
-  -> Validity -- ^ expected result
+  :: String
+  -> FilePath
+  -> BExp
+  -> (IO Validity -> IO ())
   -> Spec
-validitySpec description pgmPath invariant expected =
+validitySpec description pgmPath invariant assertion=
   it description do
   readAndParseGCL pgmPath >>= \case
     Left err -> err `shouldBe` "a correct parse"
-    Right pgm ->
+    Right pgm -> do
       let closure = getClosure pgm
-          pVCs = getBasicPathVCs pgm
-      in do
-        solver <- newCVC4Solver 30
-        checkValidVCs solver closure invariant pVCs
-          `shouldReturn` expected
+          pVCsWP = map wpPath <$> getProgramPaths pgm
+          pVCsSP = map spPath <$> getProgramPaths pgm
+          checkValid = checkValidVCs (newCVC4Solver 30) invariant
+      assertion $ checkValid pVCsWP
+      assertion $ checkValid pVCsSP
 
 spec_if_foo_validity :: Spec
 spec_if_foo_validity = validitySpec
   "assserts the validity of the if-foo.gcl program's VCs"
   "res/gcl/if-foo.gcl"
   (BConst undefined)
-  Valid
+  (`shouldReturn` Valid)
 
 spec_max_validity :: Spec
 spec_max_validity = validitySpec
   "asserts the validity of the max.gcl program's VCs"
   "res/gcl/max.gcl"
   (BConst undefined) -- not evaluated
-  Valid
+  (`shouldReturn` Valid)
 
 spec_peasants_multiplication_validity :: Spec
 spec_peasants_multiplication_validity = validitySpec
@@ -55,8 +55,20 @@ spec_peasants_multiplication_validity = validitySpec
   "res/gcl/peasants-multiplication.gcl"
 -- invariant a * b + res == x * y
   (a :*: b :+: res :==: x :*: y :&: a :>=: 0)
-  Valid
+  (`shouldReturn` Valid)
   where [a,b,res,x,y] = map Var ["a","b","res","x","y"]
+
+spec_peasants_multiplication_invalidity :: Spec
+spec_peasants_multiplication_invalidity = validitySpec
+  "asserts the invalidity of the \
+  \peasants-multiplication.gcl program's VCs \
+  \given an ineadequate invariant"
+  "res/gcl/peasants-multiplication.gcl"
+-- invariant a * b + res == x * y
+  (a :*: b :+: res :==: x :*: y)
+  (>>= ((`shouldBe` False) . isValid))
+  where [a,b,res,x,y] = map Var ["a","b","res","x","y"]
+
 
 spec_peasants_multiplication_serial_validity :: Spec
 spec_peasants_multiplication_serial_validity = validitySpec
@@ -65,7 +77,7 @@ spec_peasants_multiplication_serial_validity = validitySpec
   "res/gcl/peasants-multiplication.gcl"
 -- invariant a * b + res == x * y
   (a :*: b :+: res :==: x :*: y :&: a :>=: 0)
-  Valid
+  (`shouldReturn` Valid)
   where [a,b,res,x,y] = map Var ["a","b","res","x","y"]
 
 spec_peasants_multiplication_concurrent_validity :: Spec
@@ -74,13 +86,8 @@ spec_peasants_multiplication_concurrent_validity = validitySpec
   \peasants-multiplication-concurrent.gcl program's VCs"
   "res/gcl/peasants-multiplication-concurrent.gcl"
 -- invariant a * b + res == x * y
-  ( a :*: b :+: res :==: x :*: y
-    :&: a :>=: 0
-    :&: b :>=: 0
-    :&: x :>=: 0
-    :&: y :>=: 0
-    :&: res :>=: 0 )
-  Valid
+  ( a :*: b :+: res :==: x :*: y :&: a :>=: 0 )
+  (`shouldReturn` Valid)
   where [a,b,res,x,y] = map Var ["a","b","res","x","y"]
 
 
@@ -95,30 +102,31 @@ test_basicpath_golden = do
           diffCmd
           (replaceExtension filePath "basicpath.golden")
           ( TL.encodeUtf8
-            . TL.fromStrict
-            . (either
+          . TL.fromStrict
+          . ( either
                 Text.pack
                 ( renderPretty
-                . specifyInvariant
-                  (Var "INVARIANT" :==: Var "PLACEHOLDER")
-                . getBasicPath )
-              ) <$> readAndParseGCL filePath
+                . pretty
+                . specifyInvariant (Var "INVARIANT" :==: Var "PLACEHOLDER")
+                . getProgramPaths
+                )
+            ) <$> readAndParseGCL filePath
           )
     | filePath <- srcFilePaths
     ]
   where diffCmd ref new = ["diff", "-u", ref, new]
 
 -- non-golden basicpath tests
-spec_simultaneous_assignment_basicpath :: Spec
-spec_simultaneous_assignment_basicpath =
-  it "Simultaneous assignment is not serialized" $ do
-  let [Right actual] = getVCs (Var "a" :<=: Var "b") [["a","b"] := [Var "b", Var "a"]]
-  actual `shouldBe` Var "b" :<=: Var "a"
-  where
-    getVCs p stmt =
-      map wpSeq
-      $ specifyInvariant undefined
-      $ getPaths p stmt
+spec_if_basicpaths_quadratic :: Spec
+spec_if_basicpaths_quadratic =
+  it "if branches result in an exponential number of basicpaths" do
+  readAndParseGCL "res/gcl/big-if.gcl" >>= \case
+    Left err -> err `shouldBe` "a correct parse"
+    Right pgm -> do
+      let actual = specifyInvariant undefined $ getProgramPaths pgm
+          [x,y,z] = map Var ["x","y","z"]
+          post = x :==: 0 :&: y :==: 0 :&: z :==: 0
+      length actual `shouldBe` 2 ^ 3
 
 -----------------------
 -- Weakest Pre tests --
@@ -129,20 +137,26 @@ spec_wpAssume =
 
 spec_wpSubstitute :: Spec
 spec_wpSubstitute =
-  it "wp of substitute statement is the substituted expression" do
+  it "wp of substitute statement is the substituted expression"
   let post = (10  :<=: Var "x") :&: BConst True
       expected = (10 :<=: 10) :&: BConst True
-  wp (Substitute ["x"] [10]) post `shouldBe` expected
+  in wp (Substitute ["x"] [10]) post `shouldBe` expected
 
+spec_wpSubstitute_simultaneous_assignment :: Spec
+spec_wpSubstitute_simultaneous_assignment =
+  it "wp of simultaneous assignment is not serialized" $
+  let post = (Var "a" :<=: Var "b")
+  in wp (Substitute ["a","b"] [Var "b", Var "a"]) post
+     `shouldBe` Var "b" :<=: Var "a"
+  
 spec_wpSequence :: Spec
 spec_wpSequence =
-  it "wp of a sequence of statements is the composition of the statements" do
+  it "wp of a sequence of statements is the composition of the statements"
   let [x,y,z] = map Var ["x","y","z"]
-      ensures = z :==: x :&: y :<=: x :&: y :>=: z :&: z :<: 10
-      path = fromPostAndList
-        ensures
-        [ Assume $ x :<=: y
-        , Substitute ["y"] [30 :+: 14 :-: x]
+      requires = x :<=: y 
+      ensures = z :==: x :&: y :<=: x :&: y :>=: z :&: z :<: 10 
+      path =
+        [ Substitute ["y"] [30 :+: 14 :-: x]
         , Substitute ["x"] [17]
         , Assume $ y :<=: x
         , Substitute ["x"] [z :-: 7]
@@ -153,39 +167,8 @@ spec_wpSequence =
           :&: 30 :+: 14 :-: x :<=: z :-: 7
           :&: 30 :+: 14 :-: x :>=: z
           :&: z :<: 10
-  let Right actual = wpSeq path
-  actual `shouldBe` weakestPrecondition
-
-spec_wpBranch :: Spec
-spec_wpBranch =
-  it "wp of branch with holes is the conjunction of each paths"
-  let [x,y,z] = map Var ["x","y","z"]
-      branch1 = Assume (x :>: 0) ::: Substitute ["y"] [x] ::: Hole
-      branch2 = Assume (x :<: 0) ::: Substitute ["y"] [0 :-: x] ::: Hole
-      path =
-        Assume (y :==: 0) :::
-        BranchInstruction [branch1, branch2] :::
-        Postcondition (y :>=: 0)
-      Right actual = wpSeq path 
-  in actual `shouldBe`
-     (y :==: 0 :=>: (
-         (x :>: 0 :=>: (x :>=: 0))
-         :&: (x :<: 0 :=>: (0 :-: x) :>=: 0)
-         )
-     )
-
-spec_wpSingleBranch :: Spec
-spec_wpSingleBranch =
-  it "wp of branch instruction with single branch"
-  let [x,y,z] = map Var ["x","y","z"]
-      branch = Assume (x :>: 0) ::: Substitute ["y"] [x] ::: Hole
-      path =
-        Assume (y :==: 0) :::
-        BranchInstruction [branch] :::
-        Postcondition (y :>=: 0)
-      Right actual = wpSeq path 
-  in actual `shouldBe`
-     (y :==: 0 :=>: (x :>: 0 :=>: (x :>=: 0)))
+  in wpPath (BasicPath requires path ensures)
+     `shouldBe` weakestPrecondition
 
 ------------------------
 -- Substitution Tests --

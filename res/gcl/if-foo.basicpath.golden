@@ -1,19 +1,40 @@
-Path 1
-  [ Branch 1
-      ; Substitute
-          @x -> 1
-      ; Assume true
-      ; Substitute
-          @y -> 1
-      { HOLE }
-    Branch 2
-      ; Substitute
-          @x -> 1
-      ; Assume false
-      ; Substitute
-          @y -> 2
-      { HOLE }
-  ]
+Path 1:
+  { PRE: true }
+  ; Substitute
+      @x -> 1
+  ; Assume true & false
+  ; Substitute
+      @y -> 1
+  ; Substitute
+      @y -> 2
   ; Substitute
       @z -> 1
-  { Satisfies x <= y & y <= z }
+  { POST: x <= y & y <= z }
+Path 2:
+  { PRE: true }
+  ; Substitute
+      @x -> 1
+  ; Assume true & ~ false
+  ; Substitute
+      @y -> 1
+  ; Substitute
+      @z -> 1
+  { POST: x <= y & y <= z }
+Path 3:
+  { PRE: true }
+  ; Substitute
+      @x -> 1
+  ; Assume ~ true & false
+  ; Substitute
+      @y -> 2
+  ; Substitute
+      @z -> 1
+  { POST: x <= y & y <= z }
+Path 4:
+  { PRE: true }
+  ; Substitute
+      @x -> 1
+  ; Assume ~ true & ~ false
+  ; Substitute
+      @z -> 1
+  { POST: x <= y & y <= z }

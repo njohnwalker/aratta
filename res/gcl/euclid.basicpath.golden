@@ -1,41 +1,140 @@
-Path 1
-  [ Branch 1
-      ; Assume true
-      ; Substitute
-          @x -> m
-          @y -> n
-      ; Assume x < 0
-      ; Substitute
-          @x -> 0 - x
-      { HOLE }
-    Branch 2
-      ; Assume true
-      ; Substitute
-          @x -> m
-          @y -> n
-      ; Assume y < 0
-      ; Substitute
-          @y -> 0 - y
-      { HOLE }
-  ]
-  { Satisfies INVARIANT == PLACEHOLDER }
-Path 2
-  ; Assume INVARIANT == PLACEHOLDER
-  [ Branch 1
-      ; Assume x > y
-      ; Substitute
-          @x -> x - y
-      { HOLE }
-    Branch 2
-      ; Assume y > x
-      ; Substitute
-          @x -> y
-          @y -> x
-      { HOLE }
-  ]
-  { Satisfies INVARIANT == PLACEHOLDER }
-Path 3
-  ; Assume INVARIANT == PLACEHOLDER
+Path 1:
+  { PRE: true }
+  ; Substitute
+      @x -> m
+      @y -> n
+  ; Assume x < 0 & y < 0
+  ; Substitute
+      @x -> 0 - x
+  ; Substitute
+      @y -> 0 - y
+  { POST: INVARIANT == PLACEHOLDER }
+Path 2:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume x > y & y > x
+  ; Substitute
+      @x -> x - y
+  ; Substitute
+      @x -> y
+      @y -> x
+  { POST: INVARIANT == PLACEHOLDER }
+Path 3:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume x > y & ~ y > x
+  ; Substitute
+      @x -> x - y
+  { POST: INVARIANT == PLACEHOLDER }
+Path 4:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume ~ x > y & y > x
+  ; Substitute
+      @x -> y
+      @y -> x
+  { POST: INVARIANT == PLACEHOLDER }
+Path 5:
+  { PRE: INVARIANT == PLACEHOLDER }
   ; Assume ~ x > y & ~ y > x
-  { Satisfies x == y & (existsJ * x == m & existsK * x ==
-  n) }
+  { POST: x == y & (existsJ * x == m & existsK * x == n) }
+Path 6:
+  { PRE: true }
+  ; Substitute
+      @x -> m
+      @y -> n
+  ; Assume x < 0 & ~ y < 0
+  ; Substitute
+      @x -> 0 - x
+  { POST: INVARIANT == PLACEHOLDER }
+Path 7:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume x > y & y > x
+  ; Substitute
+      @x -> x - y
+  ; Substitute
+      @x -> y
+      @y -> x
+  { POST: INVARIANT == PLACEHOLDER }
+Path 8:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume x > y & ~ y > x
+  ; Substitute
+      @x -> x - y
+  { POST: INVARIANT == PLACEHOLDER }
+Path 9:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume ~ x > y & y > x
+  ; Substitute
+      @x -> y
+      @y -> x
+  { POST: INVARIANT == PLACEHOLDER }
+Path 10:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume ~ x > y & ~ y > x
+  { POST: x == y & (existsJ * x == m & existsK * x == n) }
+Path 11:
+  { PRE: true }
+  ; Substitute
+      @x -> m
+      @y -> n
+  ; Assume ~ x < 0 & y < 0
+  ; Substitute
+      @y -> 0 - y
+  { POST: INVARIANT == PLACEHOLDER }
+Path 12:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume x > y & y > x
+  ; Substitute
+      @x -> x - y
+  ; Substitute
+      @x -> y
+      @y -> x
+  { POST: INVARIANT == PLACEHOLDER }
+Path 13:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume x > y & ~ y > x
+  ; Substitute
+      @x -> x - y
+  { POST: INVARIANT == PLACEHOLDER }
+Path 14:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume ~ x > y & y > x
+  ; Substitute
+      @x -> y
+      @y -> x
+  { POST: INVARIANT == PLACEHOLDER }
+Path 15:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume ~ x > y & ~ y > x
+  { POST: x == y & (existsJ * x == m & existsK * x == n) }
+Path 16:
+  { PRE: true }
+  ; Substitute
+      @x -> m
+      @y -> n
+  ; Assume ~ x < 0 & ~ y < 0
+  { POST: INVARIANT == PLACEHOLDER }
+Path 17:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume x > y & y > x
+  ; Substitute
+      @x -> x - y
+  ; Substitute
+      @x -> y
+      @y -> x
+  { POST: INVARIANT == PLACEHOLDER }
+Path 18:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume x > y & ~ y > x
+  ; Substitute
+      @x -> x - y
+  { POST: INVARIANT == PLACEHOLDER }
+Path 19:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume ~ x > y & y > x
+  ; Substitute
+      @x -> y
+      @y -> x
+  { POST: INVARIANT == PLACEHOLDER }
+Path 20:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume ~ x > y & ~ y > x
+  { POST: x == y & (existsJ * x == m & existsK * x == n) }

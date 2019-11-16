@@ -1,9 +1,9 @@
-Path 1
-  ; Assume x <= y
+Path 1:
+  { PRE: x <= y }
   ; Substitute
       @y -> (30 + 14) - x
   ; Substitute
       @x -> 17
   ; Substitute
       @x -> z - 7
-  { Satisfies z <= x & (y <= x & (y <= z & z <= 10)) }
+  { POST: z <= x & (y <= x & (y <= z & z <= 10)) }

@@ -23,14 +23,14 @@ import                Language.GCL as GCL
 
 spec_simpleSMT :: Spec
 spec_simpleSMT
-  = before (newZ3Solver 30)
+  = before (newCVC4Solver 30)
   $ after (\solver -> stop solver >> return ())
   $ it "runs a trivial smt solver instance"
   \_ -> True
 
 spec_simpleBoolToSExpr :: Spec
 spec_simpleBoolToSExpr = let bexp = Var "a" :<=: Var "b"
-  in before (newZ3Solver 30)
+  in before (newCVC4Solver 30)
   $ after (\solver -> stop solver >> return ())
   $ it "runs a simple smt query and \
      \asserts the boolean is satisfied by the model"
@@ -42,7 +42,7 @@ spec_simpleBoolToSExpr = let bexp = Var "a" :<=: Var "b"
 
 spec_pathologicalBoolToSExpr :: Spec
 spec_pathologicalBoolToSExpr = let bexp = 1 :==: 0 :*: (0 :/: 0)
-  in before (newZ3Solver 30)
+  in before (newCVC4Solver 30)
   $ after (\solver -> stop solver >> return ())
   $ it "runs a pathological division-by-zero smt query and \
      \asserts the boolean is satisfied by the model"
@@ -54,7 +54,7 @@ spec_pathologicalBoolToSExpr = let bexp = 1 :==: 0 :*: (0 :/: 0)
 
 spec_boolToSExpr :: Spec
 spec_boolToSExpr = do
-  solver <- runIO $ newCVC4Solver 1
+  solver <- runIO $ newCVC4Solver 30
   it "generates arbitrary Boolean expressions and checks satisfiability"
     $ QC.property $ boolToSExprProperty solver
   where
@@ -66,9 +66,7 @@ spec_boolToSExpr = do
             result <- check solver
             case result of
               Sat -> do
-                env <- getModel solver
-                  $ Set.map getVariableText
-                  $ getClosureBool bExp
+                env <- getModel solver $ getClosure bExp
                 return $ Just $ Just env
               Unsat -> return $ Just Nothing
               Unknown -> return Nothing

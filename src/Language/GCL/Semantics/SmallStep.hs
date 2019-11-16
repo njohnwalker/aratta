@@ -30,26 +30,16 @@ type MaybeDivZero = ExceptT DivZero
 
 evalBoolInternal :: BExp -> MaybeDivZero (Reader Env) Bool
 evalBoolInternal = \case
-  BConst b -> return b
-  Not e -> not <$> evalBoolInternal e
+  BConst b   -> return b
+  Not e      ->  not <$> evalBoolInternal e
   e1 :&: e2  -> (&&) <$> evalBoolInternal e1 <*> evalBoolInternal e2
   e1 :|: e2  -> (||) <$> evalBoolInternal e1 <*> evalBoolInternal e2
   e1 :=>: e2 -> (\l r -> not l || r) <$> evalBoolInternal e1 <*> evalBoolInternal e2
-  i1 :==: i2 -> evalRelation (==) i1 i2
-  i1 :<=: i2 -> evalRelation (<=) i1 i2
-  i1 :>=: i2 -> evalRelation (>=) i1 i2
-  i1 :<: i2  -> evalRelation (<) i1 i2
-  i1 :>: i2  -> evalRelation (>) i1 i2
-  where
-    evalRelation
-      :: (Integer -> Integer -> Bool)
-      -> IExp -> IExp
-      -> MaybeDivZero (Reader Env) Bool
-    evalRelation op mInt1 mInt2 = do
-      i1 <- evalIntInternal mInt1
-      i2 <- evalIntInternal mInt2
-      return $ i1 `op` i2
-
+  i1 :==: i2 -> evalIntOp (==) i1 i2
+  i1 :<=: i2 -> evalIntOp (<=) i1 i2
+  i1 :>=: i2 -> evalIntOp (>=) i1 i2
+  i1 :<: i2  -> evalIntOp  (<) i1 i2
+  i1 :>: i2  -> evalIntOp  (>) i1 i2
 
 evalIntInternal :: IExp -> MaybeDivZero (Reader Env) Integer
 evalIntInternal = \case
@@ -59,9 +49,8 @@ evalIntInternal = \case
   e1 :-: e2 ->   (-) <$> evalIntInternal e1 <*> evalIntInternal e2 
   e1 :*: e2 ->
     evalIntInternal e1 `mplus` evalIntInternal e2
-    >>= \case
-      0 -> return 0
-      _ -> (*) <$> evalIntInternal e1 <*> evalIntInternal e2
+    >>= \case 0 -> return 0
+              _ -> evalIntOp (*) e1 e2
   e1 :/: e2 ->
     do i1 <- evalIntInternal e1
        i2 <- evalIntInternal e2
@@ -70,6 +59,14 @@ evalIntInternal = \case
     do i1 <- evalIntInternal e1
        i2 <- evalIntInternal e2
        i1 `eModM` i2
+
+evalIntOp
+  :: (Integer -> Integer -> res)
+  -> IExp
+  -> IExp
+  -> MaybeDivZero (Reader Env) res
+evalIntOp op e1 e2 =
+  op <$> evalIntInternal e1 <*> evalIntInternal e2
 
 {- | Guards of GCL Commands are atomic
 -}
@@ -85,9 +82,7 @@ evalBoolAny bexp
   = flip runReader env
   $ runExceptT (evalBoolInternal bexp)
   where
-    env = makeAnyEnvironment
-        $ Set.map getVariableText
-        $ getClosureBool bexp
+    env = makeAnyEnvironment $ getClosure bexp
 
 --eDiv :: Integral a => a -> a -> a
 eDivM m 0 = throwError DivZero

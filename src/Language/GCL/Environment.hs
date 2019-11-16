@@ -1,64 +1,52 @@
 module Language.GCL.Environment
-  ( Env
-  , initialEnv
-  , lookupEnv
-  , makeAnyEnvironment
-  , getClosureBool
-  , getClosureStmt
-  , getClosure
-  , Map.fromList
-  )
 where
 
 import Control.Lens ( toListOf )
 
-import Data.Data.Lens ( biplate )
-import           Data.Set ( Set )
-import qualified Data.Set as Set
+import           Data.Data
+import           Data.Data.Lens ( biplate )
 import           Data.Map ( Map )
 import qualified Data.Map as Map
-import           Data.Text ( Text )
-
+import           Data.Set ( Set )
+import qualified Data.Set as Set
 import           Data.Stream.Infinite  ( Stream )
 import qualified Data.Stream.Infinite as Stream
+import           Data.Text ( Text )
+import           Data.Text.Prettyprint.Doc
+
 
 import Language.GCL.Syntax.Abstract
 
-type Env = Map Text Integer
+type Env = Map Variable Integer
 
 initialEnv :: Env
 initialEnv = Map.empty
 
 lookupEnv :: Variable -> Env ->  Integer
-lookupEnv = Map.findWithDefault 0 . getVariableText
+lookupEnv = Map.findWithDefault 0
 
-integerStream :: (Num a, Ord a) => Stream a
-integerStream = Stream.iterate (\x-> if x < 0 then x * (-1) + 1 else -(x+1)) 0
+fromListEnv :: [(Variable, Integer)] -> Env
+fromListEnv = Map.fromList
 
-tails = Stream.iterate Stream.tail
-
-makeAnyEnvironment :: Set Text -> Env 
+makeAnyEnvironment :: Set Variable -> Env 
 makeAnyEnvironment = Map.fromList . flip zip [1,1..] . Set.toList
 
+-- | Find the variable closure of a *thing*
+getClosure :: Data a => a -> Set Variable
+getClosure = Set.fromList . toListOf biplate
 
--- TODO: convert to `foldmapof sets` instead of lists
--- | Find the variable closure of a program
-getClosure :: GCLProgram -> Set Variable
-getClosure GCLProgram {req, program, ens}
-  =  requiresClo <> programClo <> ensuresClo
+instance Pretty Env where
+  pretty env = encloseSep "{ " " }" (", ")
+              (map prettySub list)
+    where list = Map.toList env
+          prettySub (v,e) = "@" <> pretty v <+> "->" <+> pretty e 
+
+--------------------
+-- Free Variables --
+type FVEnv = Map Variable (Stream Variable)
+
+initialFVEnv :: Set Variable -> FVEnv
+initialFVEnv = Map.fromSet buildFVStream
   where
-    requiresClo = maybe mempty getClosureBool req
-    ensuresClo = maybe mempty getClosureBool ens
-    programClo = Set.fromList $ toListOf biplate program
-
--- | Find the free variables of a statement
-getClosureStmt :: Statement -> Set Variable
-getClosureStmt = Set.fromList . toListOf biplate
-
--- | Find the free variables of a boolean expression
-getClosureBool :: BExp -> Set Variable
-getClosureBool = Set.fromList . toListOf biplate
-
--- | Find the free variables of an integer expression
-getClosureInt :: IExp -> Set Variable
-getClosureInt = Set.fromList . toListOf biplate
+    buildFVStream v = Stream.iterate (<>"'") (v <> "'")
+  

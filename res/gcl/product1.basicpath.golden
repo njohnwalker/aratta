@@ -1,43 +1,30 @@
-Path 1
+Path 1:
+  { PRE: true }
   ; Substitute
       @m1 -> 0
       @n1 -> 0
       @res -> 0
-  { Satisfies INVARIANT == PLACEHOLDER }
-Path 2
-  ; Assume INVARIANT == PLACEHOLDER
-  [ Branch 1
-      ; Assume m1 < m
-      ; Substitute
-          @n1 -> 0
-      { Satisfies INVARIANT == PLACEHOLDER }
-  ]
-  { Satisfies INVARIANT == PLACEHOLDER }
-Path 3
-  ; Assume INVARIANT == PLACEHOLDER
-  [ Branch 1
-      ; Assume INVARIANT == PLACEHOLDER
-      [ Branch 1
-          ; Assume n1 < n
-          ; Substitute
-              @res -> res + 1
-              @n1 -> n1 + 1
-          { HOLE }
-      ]
-      { Satisfies INVARIANT == PLACEHOLDER }
-  ]
-  { Satisfies INVARIANT == PLACEHOLDER }
-Path 4
-  ; Assume INVARIANT == PLACEHOLDER
-  [ Branch 1
-      ; Assume INVARIANT == PLACEHOLDER
-      ; Assume ~ n1 < n
-      ; Substitute
-          @m1 -> m1 + 1
-      { HOLE }
-  ]
-  { Satisfies INVARIANT == PLACEHOLDER }
-Path 5
-  ; Assume INVARIANT == PLACEHOLDER
+  { POST: INVARIANT == PLACEHOLDER }
+Path 2:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume m1 < m
+  ; Substitute
+      @n1 -> 0
+  { POST: INVARIANT == PLACEHOLDER }
+Path 3:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume n1 < n
+  ; Substitute
+      @res -> res + 1
+      @n1 -> n1 + 1
+  { POST: INVARIANT == PLACEHOLDER }
+Path 4:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume ~ n1 < n
+  ; Substitute
+      @m1 -> m1 + 1
+  { POST: INVARIANT == PLACEHOLDER }
+Path 5:
+  { PRE: INVARIANT == PLACEHOLDER }
   ; Assume ~ m1 < m
-  { Satisfies res == m * n }
+  { POST: res == m * n }

@@ -9,7 +9,7 @@ import qualified Data.Text as Text ( pack )
 import qualified Data.Text.IO as Text ( readFile )
 
 import qualified Data.Text.Lazy as TL ( fromStrict )
-import qualified Data.Text.Lazy.Encoding as TL (encodeUtf8)
+import qualified Data.Text.Lazy.Encoding as TL ( encodeUtf8 )
 
 import Test.Hspec
 import Test.Tasty
@@ -28,7 +28,7 @@ test_prettyGCL = do
           (replaceExtension filePath ".golden")
           ( TL.encodeUtf8
             . TL.fromStrict
-            . (either Text.pack renderPretty)
+            . (either Text.pack (renderPretty . pretty))
             <$> readAndParseGCL filePath
           )
     | filePath <- srcFilePaths
@@ -37,10 +37,10 @@ test_prettyGCL = do
 
 spec_parseIdentityGCL :: Spec
 spec_parseIdentityGCL =
-  before parseAllGCLSources $ do
-  it "parse . pretty . parse = parse"
-     \pathASTPairs -> do
-       [parseGCL path $ renderPretty ast | (path, ast) <- pathASTPairs]
+  before parseAllGCLSources $
+  it "'parse . pretty . parse = parse' for gcl source-files"
+     \pathASTPairs ->
+       [parseGCL path $ renderPretty $ pretty ast | (path, ast) <- pathASTPairs]
        `shouldMatchList` map (Right . snd) pathASTPairs
   where
     parseAllGCLSources = do
@@ -48,6 +48,27 @@ spec_parseIdentityGCL =
       srcTexts <- forM srcFilePaths Text.readFile
       return [ (path, pgm)
              | (path, Right pgm) <-
-                 map (\(path, text) -> (path, parseGCL path text))
-                 $ zip srcFilePaths srcTexts
+                 zipWith (\path text -> (path, parseGCL path text))
+                 srcFilePaths srcTexts
+             ]
+
+spec_parseIdentityInvariantList :: Spec
+spec_parseIdentityInvariantList =
+  before parseAllInvariantListSources $
+  it "'parse . pretty . parse = parse' for invariant lists"
+  \pathInvariantListPairs ->
+    [ parseGCLInvariantList path
+      $ renderPretty
+      $ prettyList ast
+    | (path, ast) <- pathInvariantListPairs
+    ] `shouldMatchList` map (Right . snd) pathInvariantListPairs
+  where
+    parseAllInvariantListSources :: IO [(FilePath, [BExp])]
+    parseAllInvariantListSources = do
+      srcFilePaths <- findByExtension [".gcl.inv"] "res/gcl"
+      srcTexts <- forM srcFilePaths Text.readFile
+      return [ (path, pgm)
+             | (path, Right pgm) <-
+                 zipWith (\path text -> (path, parseGCLInvariantList path text))
+                 srcFilePaths srcTexts
              ]

@@ -31,6 +31,7 @@ data MainOptions
     , interpreterOrExecute :: Method
     , sourceFile           :: String
     , inputFile            :: Maybe String
+    , invariantFile        :: Maybe String
     }
 
 commandLineParse :: IO MainOptions
@@ -63,4 +64,9 @@ commandLineParser = MainOptions
   <*> maybeStrOption (  long "input"
                      <> metavar "INPUTFILE"
                      <> help "File containing input to Program.  [optional]")
+  <*> maybeStrOption (  long "invariants"
+                     <> metavar "INVARIANTS"
+                     <> help "File containg candidate invariants  [optional]\n\
+                             \for program verification, defaults to 'INPUTFILE.inv'")
+                             
   <**> helper

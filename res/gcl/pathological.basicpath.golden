@@ -1,79 +1,132 @@
-Path 1
-  [ Branch 1
-      [ 
-      ]
-      { HOLE }
-    Branch 2
-      ; Assume x >= 0
-      ; Substitute
-          @res -> 0
-      ; Substitute
-          @x0 -> 0
-      ; Assume x == 1
-      ; Substitute
-          @res -> y
-      { HOLE }
-    Branch 3
-      ; Assume x >= 0
-      ; Substitute
-          @res -> 0
-      ; Substitute
-          @x0 -> 0
-      ; Assume x > 1
-      { Satisfies INVARIANT == PLACEHOLDER }
-  ]
+Path 1:
+  { PRE: x >= 0 }
+  ; Substitute
+      @res -> 0
+  ; Substitute
+      @x0 -> 0
+  ; Assume (x == 0 & x == 1) & x > 1
+  ; Substitute
+      @res -> y
+  { POST: INVARIANT == PLACEHOLDER }
+Path 2:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume ~ x == x0
+  ; Substitute
+      @res -> res + y
+      @x0 -> x0 - 1
+  { POST: INVARIANT == PLACEHOLDER }
+Path 3:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume ~ ~ x == x0
   ; Substitute
       @res -> res / y
-  { Satisfies res == x }
-Path 2
-  [ Branch 1
-      [ 
-      ]
-      { HOLE }
-    Branch 2
-      ; Assume x >= 0
-      ; Substitute
-          @res -> 0
-      ; Substitute
-          @x0 -> 0
-      ; Assume x == 1
-      ; Substitute
-          @res -> y
-      { HOLE }
-    Branch 3
-      ; Assume INVARIANT == PLACEHOLDER
-      [ Branch 1
-          ; Assume ~ x == x0
-          ; Substitute
-              @res -> res + y
-              @x0 -> x0 - 1
-          { HOLE }
-      ]
-      { Satisfies INVARIANT == PLACEHOLDER }
-  ]
+  { POST: res == x }
+Path 4:
+  { PRE: x >= 0 }
+  ; Substitute
+      @res -> 0
+  ; Substitute
+      @x0 -> 0
+  ; Assume (x == 0 & x == 1) & ~ x > 1
+  ; Substitute
+      @res -> y
   ; Substitute
       @res -> res / y
-  { Satisfies res == x }
-Path 3
-  [ Branch 1
-      [ 
-      ]
-      { HOLE }
-    Branch 2
-      ; Assume x >= 0
-      ; Substitute
-          @res -> 0
-      ; Substitute
-          @x0 -> 0
-      ; Assume x == 1
-      ; Substitute
-          @res -> y
-      { HOLE }
-    Branch 3
-      ; Assume INVARIANT == PLACEHOLDER
-      ; Assume ~ ~ x == x0
-      { HOLE }
-  ]
+  { POST: res == x }
+Path 5:
+  { PRE: x >= 0 }
+  ; Substitute
+      @res -> 0
+  ; Substitute
+      @x0 -> 0
+  ; Assume (x == 0 & ~ x == 1) & x > 1
+  { POST: INVARIANT == PLACEHOLDER }
+Path 6:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume ~ x == x0
+  ; Substitute
+      @res -> res + y
+      @x0 -> x0 - 1
+  { POST: INVARIANT == PLACEHOLDER }
+Path 7:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume ~ ~ x == x0
   ; Substitute
       @res -> res / y
-  { Satisfies res == x }
+  { POST: res == x }
+Path 8:
+  { PRE: x >= 0 }
+  ; Substitute
+      @res -> 0
+  ; Substitute
+      @x0 -> 0
+  ; Assume (x == 0 & ~ x == 1) & ~ x > 1
+  ; Substitute
+      @res -> res / y
+  { POST: res == x }
+Path 9:
+  { PRE: x >= 0 }
+  ; Substitute
+      @res -> 0
+  ; Substitute
+      @x0 -> 0
+  ; Assume (~ x == 0 & x == 1) & x > 1
+  ; Substitute
+      @res -> y
+  { POST: INVARIANT == PLACEHOLDER }
+Path 10:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume ~ x == x0
+  ; Substitute
+      @res -> res + y
+      @x0 -> x0 - 1
+  { POST: INVARIANT == PLACEHOLDER }
+Path 11:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume ~ ~ x == x0
+  ; Substitute
+      @res -> res / y
+  { POST: res == x }
+Path 12:
+  { PRE: x >= 0 }
+  ; Substitute
+      @res -> 0
+  ; Substitute
+      @x0 -> 0
+  ; Assume (~ x == 0 & x == 1) & ~ x > 1
+  ; Substitute
+      @res -> y
+  ; Substitute
+      @res -> res / y
+  { POST: res == x }
+Path 13:
+  { PRE: x >= 0 }
+  ; Substitute
+      @res -> 0
+  ; Substitute
+      @x0 -> 0
+  ; Assume (~ x == 0 & ~ x == 1) & x > 1
+  { POST: INVARIANT == PLACEHOLDER }
+Path 14:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume ~ x == x0
+  ; Substitute
+      @res -> res + y
+      @x0 -> x0 - 1
+  { POST: INVARIANT == PLACEHOLDER }
+Path 15:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume ~ ~ x == x0
+  ; Substitute
+      @res -> res / y
+  { POST: res == x }
+Path 16:
+  { PRE: x >= 0 }
+  ; Substitute
+      @res -> 0
+  ; Substitute
+      @x0 -> 0
+  ; Assume (~ x == 0 & ~ x == 1) & ~ x > 1
+  ; Substitute
+      @res -> res / y
+  { POST: res == x }

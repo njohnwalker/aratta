@@ -16,4 +16,4 @@ if x == y ->
       x, y, z := 10, 20, 76 ;
 fi
 catdog := c ;
-@ens()
+@ens(true)

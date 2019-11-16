@@ -15,7 +15,7 @@ import RunGCL   ( runGCL )
 main :: IO ()
 main = do
   { options <- commandLineParse
-  ; putStrLn $ "Reading file \'" ++ sourceFile options ++ "\'"
+  ; putStrLn $ "Reading file \'" ++ sourceFile options ++ "\'..."
   ; srcFile <- readFile $ sourceFile options
   ; (case language options of
       Imp   -> runImp

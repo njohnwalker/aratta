@@ -1,15 +1,32 @@
-Path 1
-  [ Branch 1
-      ; Assume x >= y
-      ; Substitute
-          @m -> x
-      { HOLE }
-    Branch 2
-      ; Assume y >= x
-      ; Substitute
-          @m -> y
-      { HOLE }
-  ]
+Path 1:
+  { PRE: true }
+  ; Assume x >= y & y >= x
+  ; Substitute
+      @m -> x
+  ; Substitute
+      @m -> y
   ; Substitute
       @n -> m
-  { Satisfies n >= x & n >= y }
+  { POST: n >= x & n >= y }
+Path 2:
+  { PRE: true }
+  ; Assume x >= y & ~ y >= x
+  ; Substitute
+      @m -> x
+  ; Substitute
+      @n -> m
+  { POST: n >= x & n >= y }
+Path 3:
+  { PRE: true }
+  ; Assume ~ x >= y & y >= x
+  ; Substitute
+      @m -> y
+  ; Substitute
+      @n -> m
+  { POST: n >= x & n >= y }
+Path 4:
+  { PRE: true }
+  ; Assume ~ x >= y & ~ y >= x
+  ; Substitute
+      @n -> m
+  { POST: n >= x & n >= y }

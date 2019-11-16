@@ -1,20 +1,24 @@
 module Language.GCL.SMTLib
   ( module Language.GCL.SMTLib
   , SMTIO.newCVC4Solver
-  , SMTIO.getModel
+  , SMTIO.newCVC4SolverWithLogger
   , SMTIO.newZ3Solver
+  , SMTIO.debugAssertions
   )
 where
 
+import Control.Lens
+import Control.Lens.Iso
 import Control.Monad ( forM )
 
-import Data.Set
-import Data.Text ( Text,  unpack )
+import qualified Data.Map as Map
+import qualified Data.Set as Set
+import Data.Text ( Text, pack, unpack )
 import qualified SimpleSMT as SMT
 import qualified SMTIO
 
 import Language.GCL.Syntax.Abstract
-import Language.GCL.Environment ( getClosureBool )
+import Language.GCL.Environment ( Env, getClosure )
 import Language.GCL.Semantics.SmallStep
 
 boolToSExpr :: BExp -> SMT.SExpr
@@ -34,7 +38,7 @@ boolToSExpr = \case
 
 intToSExpr :: IExp -> SMT.SExpr
 intToSExpr = \case
-  Var v -> SMT.const $ unpack $ getVariableText v
+  Var v -> SMT.const $ v ^. varEncoded
   IConst i -> SMT.int i
   i1 :+: i2 -> intToSExpr i1 `SMT.add` intToSExpr i2
   i1 :-: i2 -> intToSExpr i1 `SMT.sub` intToSExpr i2
@@ -42,6 +46,18 @@ intToSExpr = \case
   i1 :/: i2 -> intToSExpr i1 `SMT.div` intToSExpr i2
   i1 :*: i2 -> intToSExpr i1 `SMT.mul` intToSExpr i2
 
+varEncoded :: Iso Variable Variable String String
+varEncoded = iso variableToSMTSymbol smtSymbolToVariable
+  where
+    variableToSMTSymbol :: Variable -> String
+    variableToSMTSymbol (Variable v) = unpack $ "|" <> v <> "|"
+
+    smtSymbolToVariable :: String -> Variable
+    smtSymbolToVariable varString
+      = Variable $ pack $ case varString of
+          '|':rest -> takeWhile (/='|') rest
+          _   -> varString
+                                        
 boolToSMTAssertion :: SMT.Solver -> BExp -> IO ()
 boolToSMTAssertion solver bexp
   = SMT.assert solver $ boolToSExpr bexp
@@ -50,11 +66,24 @@ boolToSMTAssertionWithHeader :: SMT.Solver -> BExp -> IO ()
 boolToSMTAssertionWithHeader solver bexp
   =  declareHeader solver names
   >> SMT.assert solver (boolToSExpr bexp)
-  where names = getClosureBool bexp
+  where names = getClosure bexp
 
-declareHeader :: SMT.Solver -> Set Variable -> IO ()
+declareHeader :: SMT.Solver -> Set.Set Variable -> IO ()
 declareHeader solver = mapM_ \name ->
-  SMT.declare solver (unpack $ getVariableText name) SMT.tInt
+  SMT.declare solver (name^.varEncoded) SMT.tInt
+
+
+getModel :: SMT.Solver -> Set.Set Variable ->  IO Env
+getModel _ (Set.null -> True) = return Map.empty
+getModel solver closure
+  =   Map.fromList
+  .   map (\(name, val) -> (name ^. from varEncoded, intFromVal val))
+  <$> SMT.getConsts solver
+      (map (view varEncoded) $ Set.toList closure)
+  where
+    intFromVal :: SMT.Value -> Integer
+    intFromVal (SMT.Int i) = i
+    intFromVal _ = error "Model contains non-integer constants"
 
 -------------------------
 -- interactive helpers --
@@ -68,9 +97,7 @@ debugSolverSatCheck solver bexp = SMT.inNewScope solver $ do
     ]
   case result of
     SMT.Sat -> do
-      env <- SMTIO.getModel solver
-             $ Data.Set.map getVariableText
-             $ getClosureBool bexp
+      env <- getModel solver $ getClosure bexp
       putStrLn $ unlines
         [ "SMT: SAT with model:"
         , show env

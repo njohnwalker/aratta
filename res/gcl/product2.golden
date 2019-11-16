@@ -1,4 +1,4 @@
-@req()
+@req(true)
 m1, res := m, 0 ;
 do @inv()
 [] m1 > 0 ->
