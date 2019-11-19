@@ -18,7 +18,7 @@ import qualified Data.Set as Set
 
 import SimpleSMT
 
-import SMTIO
+import SMT.IO
 import                Language.GCL as GCL
 
 spec_simpleSMT :: Spec
@@ -37,7 +37,9 @@ spec_simpleBoolToSExpr = let bexp = Var "a" :<=: Var "b"
      \solver -> do
        boolToSMTAssertionWithHeader solver bexp
        check solver
-       env <- getModel solver $ Set.fromList ["a","b"]
+       env <- fmap smtToGCLModel
+              $ getModel solver
+              $ Set.fromList ["a","b"]
        evalBool env bexp `shouldBe` Right True
 
 spec_pathologicalBoolToSExpr :: Spec
@@ -78,7 +80,7 @@ spec_boolToSExpr = do
           $ case evalBoolAny $ Not bExp of
               Left DivZero -> QC.discard
               Right sat -> sat
-        Just (Just env) ->
+        Just (Just (smtToGCLModel -> env)) ->
           QC.counterexample
           ("Solver says: Sat\n\
            \with model:  "++ show (Map.toList env)

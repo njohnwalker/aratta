@@ -11,7 +11,9 @@ import qualified System.Exit      as System
 import qualified System.Directory as System
 
 import Options.Applicative.MainOptions 
+
 import Language.GCL
+import SemanticModel.PredicateTransformer.Validity
 
 runGCL :: Text -> MainOptions -> IO ()
 runGCL srcText options = do
@@ -80,10 +82,10 @@ retrieveInvariantList invariantFilePath = do
         Right invariants -> return invariants
       
 
-reportValidity :: Validity -> IO ()
+reportValidity :: Validity BExp -> IO ()
 reportValidity = \case
   Valid -> putStrLn "Program Validated"
-  Invalid vc counterexample -> do
+  Invalid vc (smtToGCLModel -> counterexample) -> do
     putStrLn "Verification failed, VC invalid:"
     T.putStrLn $ "    " <> (renderPretty $ pretty $ vc)
     putStrLn "With counterexample:"

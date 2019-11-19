@@ -4,43 +4,47 @@ where
 import Data.Hashable
 
 import Control.Concurrent.STM
+import Control.Monad.IO.Class
+import Control.Monad.Reader
 
 import SemanticModel.PredicateTransformer.InvariantLattice
+import SemanticModel.PredicateTransformer.Validity
 
-type     ValidInvariantTMVar inv = TMVar inv
-type   InvalidInvariantsTVar inv = TVar  [Candidate inv]
-type PossibleInvariantsTChan inv = TChan (Candidate inv)
+type InvalidInvariantBuffer = TQueue Invariant
+type ValidInvariantTMVar inv = TMVar inv 
 
+beginSolverFactory :: [inv] -> Reader inv [inv] -> IO ()
+beginSolverFactory invs pVCs = undefined
+  where
+    solverFactory'
+      :: (MonadFactory inv m, MonadIO m)
+      => ValidInvariantTMVar inv
+      -> InvalidInvariantBuffer
+      -> m ()
+    solverFactory'  mResultVar invalidBuffer = do
+      mResult <- liftIO $ atomically $ tryReadTMVar mResultVar
+      case mResult of
+        -- halt factory if result has been found
+        Just _ -> return ()
+  
+        -- otherwise,
+        --    - read the buffer
+        --    - update the lattice
+        --    - spawn next solver threads
+        Nothing -> do
+          invalidInvariant <- liftIO $ atomically $ readTQueue invalidBuffer
+          nextInvariants <- updateLattice invalidInvariant
+          invMap <- asks invariantMap
+          let solverThreads =
+                []
+          solverFactory' mResultVar invalidBuffer
 
-initializeInvariantTVars
-  :: Hashable inv
-  => [inv]
-  -> STM ( TMVar inv             -- a valid invariant
-         , TVar  [Candidate inv] -- proven invalid invariants 
-         , TChan (Candidate inv) -- possible invariants to validate
-         )
-initializeInvariantTVars invs = do
-  validInvariant <- newEmptyTMVar
-  invalidInvariants <- newTVar []
-  possibleInvariants <- newTChan
-  mapM_ (writeTChan possibleInvariants)
-    $ initialCandidates invs
-  return (validInvariant, invalidInvariants, possibleInvariants)
-
-
--- | Read and update the list of proven invalid invariants and
---   send (non-blocking) next possible invariants to the
---   to-solve buffer
-updatePossibleInvariants
-  :: (Hashable inv, Eq inv)
-  => Candidate inv
-  -> InvalidInvariantsTVar inv
-  -> PossibleInvariantsTChan inv
+solverThread
+  :: Invariant
+  -> inv
+  -> Reader inv [inv]
+  -> InvalidInvariantBuffer
+  -> ValidInvariantTMVar inv
   -> IO ()
-updatePossibleInvariants inv invalidInvTVar invTChan = do
-  invalidInvs <- atomically $ do
-    invalidInvs <- readTVar invalidInvTVar
-    writeTVar invalidInvTVar $ inv : invalidInvs
-    return invalidInvs
-  mapM_ (atomically . writeTChan invTChan)
-    $ iterateCandidates invalidInvs inv
+solverThread invKey inv pVCs invalidBuffer mResultVar = do
+  undefined

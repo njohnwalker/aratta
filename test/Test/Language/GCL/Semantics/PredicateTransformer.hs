@@ -13,6 +13,7 @@ import Test.Tasty
 import Test.Tasty.Golden ( goldenVsStringDiff, findByExtension )
 
 import Language.GCL
+import SemanticModel.PredicateTransformer.Validity
 
 ------------------------
 -- VC Validity Tests --
@@ -20,7 +21,7 @@ validitySpec
   :: String
   -> FilePath
   -> BExp
-  -> (IO Validity -> IO ())
+  -> (IO (Validity BExp) -> IO ())
   -> Spec
 validitySpec description pgmPath invariant assertion=
   it description do

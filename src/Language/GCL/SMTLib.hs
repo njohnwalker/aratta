@@ -1,9 +1,9 @@
 module Language.GCL.SMTLib
   ( module Language.GCL.SMTLib
-  , SMTIO.newCVC4Solver
-  , SMTIO.newCVC4SolverWithLogger
-  , SMTIO.newZ3Solver
-  , SMTIO.debugAssertions
+  , SMT.IO.newCVC4Solver
+  , SMT.IO.newCVC4SolverWithLogger
+  , SMT.IO.newZ3Solver
+  , SMT.IO.debugAssertions
   )
 where
 
@@ -15,7 +15,8 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Text ( Text, pack, unpack )
 import qualified SimpleSMT as SMT
-import qualified SMTIO
+import qualified SMT.Environment as SMT
+import qualified SMT.IO
 
 import Language.GCL.Syntax.Abstract
 import Language.GCL.Environment ( Env, getClosure )
@@ -72,14 +73,22 @@ declareHeader :: SMT.Solver -> Set.Set Variable -> IO ()
 declareHeader solver = mapM_ \name ->
   SMT.declare solver (name^.varEncoded) SMT.tInt
 
+-- | extract a satisfying smt environment from th solver
+getModel :: SMT.Solver -> Set.Set Variable ->  IO SMT.Env
+getModel _ (Set.null -> True) = return []
+getModel solver closure =
+  SMT.getConsts solver
+  $ map (view varEncoded)
+  $ Set.toList closure
 
-getModel :: SMT.Solver -> Set.Set Variable ->  IO Env
-getModel _ (Set.null -> True) = return Map.empty
-getModel solver closure
-  =   Map.fromList
-  .   map (\(name, val) -> (name ^. from varEncoded, intFromVal val))
-  <$> SMT.getConsts solver
-      (map (view varEncoded) $ Set.toList closure)
+-- | extract a satisfying gcl environment from the solver
+smtToGCLModel :: SMT.Env -> Env
+smtToGCLModel smtModel = Map.fromList
+    [ ( name ^. from varEncoded
+      , intFromVal val
+      ) 
+    | (name, val) <- smtModel
+    ]
   where
     intFromVal :: SMT.Value -> Integer
     intFromVal (SMT.Int i) = i
@@ -97,7 +106,9 @@ debugSolverSatCheck solver bexp = SMT.inNewScope solver $ do
     ]
   case result of
     SMT.Sat -> do
-      env <- getModel solver $ getClosure bexp
+      env <- fmap smtToGCLModel
+             $ getModel solver
+             $ getClosure bexp
       putStrLn $ unlines
         [ "SMT: SAT with model:"
         , show env

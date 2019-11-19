@@ -1,4 +1,4 @@
-module SMTIO
+module SMT.IO
 where
 
 import qualified Data.Map as Map

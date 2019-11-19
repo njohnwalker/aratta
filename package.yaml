@@ -31,7 +31,6 @@ dependencies:
 - prettyprinter
 - hashable
 - containers
-- unordered-containers
 - filepath
 - Glob
 - simple-smt
@@ -42,6 +41,7 @@ dependencies:
 - QuickCheck
 - directory
 - stm
+- unordered-containers
 
 default-extensions:
 - OverloadedStrings
@@ -51,6 +51,7 @@ default-extensions:
 - FlexibleContexts
 - MultiParamTypeClasses
 - FunctionalDependencies
+- ConstraintKinds
 - DeriveGeneric
 - DeriveAnyClass
 - DeriveDataTypeable

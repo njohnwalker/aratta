@@ -18,32 +18,28 @@ import           Data.Text.Prettyprint.Doc
 import           GHC.Generics
 
 import qualified SimpleSMT as SMT
+import qualified SMT.Environment as SMT
 import           Language.GCL.Environment
 import qualified Language.GCL.SMTLib as GCL.SMT
 import           Language.GCL.Syntax.Abstract
 
+import SemanticModel.PredicateTransformer.Validity
+
+type GCLValidity = Validity BExp
+
 -------------------
 -- VC Validation --
-data Validity
-  = Valid
-  | Invalid BExp Env
-  | UnknownValidity BExp
-  deriving (Eq, Ord, Show)
-
-isValid :: Validity -> Bool
-isValid = \case Valid -> True ; _ -> False 
-
 checkValidVCs
   :: IO SMT.Solver -- Solver MVar for SMT
   -> BExp -- Candidate invariant
   -> ParameterizedInvariant [BExp] -- Program invariants
-  -> IO Validity
+  -> IO GCLValidity
 checkValidVCs newSolver inv pVCs = checkSolverVC vcs
   where
     vcs = specifyInvariant inv pVCs
     fullClosure = getClosure vcs `Set.union` getClosure inv
 
-    checkSolverVC :: [BExp] -> IO Validity
+    checkSolverVC :: [BExp] -> IO GCLValidity
     checkSolverVC [] = return Valid
     checkSolverVC (vc:vcs) = do
        solver <- newSolver
@@ -138,7 +134,7 @@ getPathsDo inv (GCS gcs) =
                [ [ (guard, command), (Not guard, []) ]
                | GC{guard, command} <- gcs ]
 
--- | Calculate the wp of a list of basicinstructions
+-- | Calculate the weakest pre of a list of basicinstructions
 wpPath :: BasicPath -> BExp
 wpPath BasicPath { precondition, path, postcondition}
   = foldr wp postcondition path'
@@ -153,7 +149,7 @@ wp ins post = case ins of
   Assume p -> (p :=>: post)
   Substitute vs es -> substitute (zip vs es) post
 
--- | Calculate the wp of a list of basicinstructions
+-- | Calculate the strongest post of a basic path
 spPath :: BasicPath -> BExp
 spPath bPath@BasicPath { precondition, path, postcondition }
   = (:=>: postcondition)

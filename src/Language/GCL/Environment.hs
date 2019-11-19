@@ -49,4 +49,3 @@ initialFVEnv :: Set Variable -> FVEnv
 initialFVEnv = Map.fromSet buildFVStream
   where
     buildFVStream v = Stream.iterate (<>"'") (v <> "'")
-  
