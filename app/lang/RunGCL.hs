@@ -4,63 +4,71 @@ where
 
 import           Prelude hiding (readFile, readIO)
 import qualified Prelude as P
+
+import Control.Concurrent
+import Control.Concurrent.STM
 import qualified Data.Set as Set
 import           Data.Text ( Text )
 import qualified Data.Text.IO as T ( putStrLn, readFile )
 import qualified System.Exit      as System
 import qualified System.Directory as System
 
+import Say
+
 import Options.Applicative.MainOptions 
 
 import Language.GCL
 import SemanticModel.PredicateTransformer.Validity
+import SemanticModel.PredicateTransformer.ConcurrentSolving
 
 runGCL :: Text -> MainOptions -> IO ()
 runGCL srcText options = do
-  { let file = sourceFile options
-        semantics = semanticModel options
-        mInFile = inputFile options
-        mInvariantFile = invariantFile options
-  ; putStrLn $ "Parsing file \'" ++ file ++ "\'..."
-  ; case parseGCL file srcText of
-      Left errorOut -> putStrLn "Parsing Failed!"
-                       >> putStrLn errorOut
-                       >> System.exitFailure
-      Right pgm -> do
-        T.putStrLn $ renderPretty $ pretty $ pgm
+  let file = sourceFile options
+      semantics = semanticModel options
+      mInFile = inputFile options
+      mInvariantFile = invariantFile options
+  putStrLn $ "Parsing file \'" ++ file ++ "\'..."
+  case parseGCL file srcText of
+    Left errorOut -> putStrLn "Parsing Failed!"
+                     >> putStrLn errorOut
+                     >> System.exitFailure
+    Right pgm -> do
+      T.putStrLn $ renderPretty $ pretty $ pgm
 
-        putStrLn "Calculating Program's Basicpaths..."
+      putStrLn "Calculating Program's Basicpaths..."
 
-        let pPgmPaths = getProgramPaths pgm
-        
-        T.putStrLn
-          $ renderPretty
-          $ pretty
-          $ specifyInvariant (Var "INVARIANT" :==: Var "PLACEHOLDER")
-          $ pPgmPaths
+      let pPgmPaths = getProgramPaths pgm
 
-        let invariantFilePath = maybe (file <> ".inv") id mInvariantFile
+      T.putStrLn
+        $ renderPretty
+        $ pretty
+        $ specifyInvariant (Var "INVARIANT" :==: Var "PLACEHOLDER")
+        $ pPgmPaths
 
+      let invariantFilePath = maybe (file <> ".inv") id mInvariantFile
+          pVCs = map spPath <$> pPgmPaths
+
+      putStrLn "Attempting Verification with trivial invariant (True)..."
+
+      validityTrivial <- checkValidVCs (newCVC4Solver 10) True_ pVCs
+  
+      if isValid validityTrivial
+        then System.exitSuccess
+        else do
         invariantList <- retrieveInvariantList invariantFilePath
         
-        validityWP <-
-          checkValidVCs
-              (newCVC4SolverWithLogger 10)
-              (foldl1 (:&:) invariantList)
-              (map wpPath <$> pPgmPaths)
+        mValidityResultVar <- newEmptyTMVarIO
 
-        reportValidity validityWP
+        forkIO $ beginSolverFactory invariantList pVCs mValidityResultVar
+      
+        validityConcurrent <- atomically $ readTMVar mValidityResultVar
 
-        validitySP <-
-          checkValidVCs
-              (newCVC4SolverWithLogger 10)
-              (foldl1 (:&:) invariantList)
-              (map spPath <$> pPgmPaths)
-        
-        reportValidity validitySP
-        
-        System.exitSuccess
-  }
+        case validityConcurrent of
+          False_ -> say "Exhausted all candidate invariants, No Valid results."
+                    >> System.exitFailure
+          vc -> sayString ("Found valid invariant:  " ++ show (pretty vc))
+                >> System.exitSuccess
+
 
 
 retrieveInvariantList :: FilePath -> IO [BExp]

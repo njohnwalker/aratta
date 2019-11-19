@@ -41,6 +41,7 @@ dependencies:
 - QuickCheck
 - directory
 - stm
+- say
 - unordered-containers
 
 default-extensions:

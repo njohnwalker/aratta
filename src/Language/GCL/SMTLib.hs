@@ -15,8 +15,8 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Text ( Text, pack, unpack )
 import qualified SimpleSMT as SMT
-import qualified SMT.Environment as SMT
-import qualified SMT.IO
+import qualified SMTLib.Environment as SMT
+import qualified SMTLib.IO as SMT.IO
 
 import Language.GCL.Syntax.Abstract
 import Language.GCL.Environment ( Env, getClosure )

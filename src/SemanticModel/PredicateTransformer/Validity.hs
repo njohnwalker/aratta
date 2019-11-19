@@ -1,7 +1,7 @@
 module SemanticModel.PredicateTransformer.Validity
 where
 
-import qualified SMT.Environment as SMT
+import qualified SMTLib.Environment as SMT
 
 data Validity inv
   = Valid

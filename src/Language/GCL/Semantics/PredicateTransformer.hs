@@ -18,7 +18,7 @@ import           Data.Text.Prettyprint.Doc
 import           GHC.Generics
 
 import qualified SimpleSMT as SMT
-import qualified SMT.Environment as SMT
+import qualified SMTLib.Environment as SMT
 import           Language.GCL.Environment
 import qualified Language.GCL.SMTLib as GCL.SMT
 import           Language.GCL.Syntax.Abstract
@@ -29,6 +29,11 @@ type GCLValidity = Validity BExp
 
 -------------------
 -- VC Validation --
+type ParameterizedInvariant = Reader BExp
+
+specifyInvariant :: BExp -> ParameterizedInvariant a -> a
+specifyInvariant = flip runReader
+
 checkValidVCs
   :: IO SMT.Solver -- Solver MVar for SMT
   -> BExp -- Candidate invariant
@@ -60,11 +65,6 @@ checkValidVCs newSolver inv pVCs = checkSolverVC vcs
 
 -------------------
 -- VC Generation --
-type ParameterizedInvariant = Reader BExp
-
-specifyInvariant :: BExp -> ParameterizedInvariant a -> a
-specifyInvariant = flip runReader
-
 data BasicInstruction
   = Assume BExp
   | Substitute [Variable] [IExp]

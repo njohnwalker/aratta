@@ -8,6 +8,8 @@ import           Data.Hashable
 import qualified Data.HashMap.Lazy as Map
 import qualified Data.HashSet as Set
 
+import Language.GCL ( BExp((:&:)) )
+
 type Invariant = Set.HashSet Int 
 
 type LazyLattice = Map.HashMap Invariant (Set.HashSet Invariant)
@@ -17,28 +19,27 @@ data FactoryEnv inv = FactoryEnv
   , invariantMap :: Map.HashMap Int inv
   }
 
-type MonadFactory inv m
-  = ( MonadReader (FactoryEnv inv) m
-    , MonadState LazyLattice m
-    )
+type MonadFactory inv
+  = MonadReader (FactoryEnv inv)
 
 initialLattice
-  :: [inv] -> (FactoryEnv inv, LazyLattice)
+  :: [inv] -> (FactoryEnv inv, LazyLattice, [(Invariant, inv)])
 initialLattice invs =
   let invMap = Map.fromList $ zip [1..] invs
       idxList = zipWith const [1..] invs
       twoElementSubsets = [Set.fromList [x,y] | x <- idxList, y <- idxList, x /= y]
       initialLazyLattice = Map.fromList $ zip
         twoElementSubsets
-        $ map Set.singleton  twoElementSubsets
-  in (FactoryEnv invs invMap, initialLazyLattice)
+        $ map (Set.map Set.singleton) twoElementSubsets
+      initialPairs = map Set.singleton [1..] `zip` invs
+  in (FactoryEnv invs invMap, initialLazyLattice, initialPairs)
 
 updateLattice
-  :: MonadFactory inv m
-  => Invariant -> m [Invariant] 
-updateLattice invKey = do
-  invariantIdxs <- asks $ zipWith const [1..] . invariantList 
-  lattice <- get
+  :: [Int]
+  -> Invariant
+  -> LazyLattice
+  -> ([Invariant], LazyLattice)
+updateLattice invariantIdxs invKey lattice =  
   let newInvariants = [ let invKey' = Set.insert i invKey
                         in (invKey', nMinusOneSubsets invKey')
                       | i <- invariantIdxs
@@ -52,8 +53,9 @@ updateLattice invKey = do
 
       nextInvariants = map fst $ filter (Set.null . snd) $ Map.toList lattice'  
 
-  put $ Map.filter (not . Set.null) lattice'
-  return nextInvariants
+      lattice'' = Map.filter (not . Set.null) lattice' 
+
+  in (nextInvariants, lattice'')
 
 
 -- | calculate the maximal proper subsets of an Invariant set
@@ -61,6 +63,10 @@ nMinusOneSubsets :: Invariant -> Set.HashSet Invariant
 nMinusOneSubsets invKey = Set.fromList [Set.delete i invKey | i <- Set.toList invKey]
 
 -- | calculate the actual invariant from the invariant key set
-getInvariant :: Invariant -> Map.HashMap Int inv -> inv
-getInvariant invKey invMap = foldl1 undefined
+getInvariant :: Invariant -> Map.HashMap Int BExp -> BExp
+getInvariant invKey invMap = foldl1 (:&:)
   [inv | (flip Map.lookup invMap -> Just inv) <- Set.toList invKey]
+
+-- | get the maximal invariant of the lattice (not Top)
+maxInvariant :: [inv] -> Invariant
+maxInvariant = Set.fromList . zipWith const [1..]

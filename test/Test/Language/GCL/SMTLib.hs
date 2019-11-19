@@ -18,7 +18,7 @@ import qualified Data.Set as Set
 
 import SimpleSMT
 
-import SMT.IO
+import SMTLib.IO
 import                Language.GCL as GCL
 
 spec_simpleSMT :: Spec
