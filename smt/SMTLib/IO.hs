@@ -11,7 +11,7 @@ newZ3Solver :: Int -> IO Solver
 newZ3Solver timeout = do
   logger <- newLogger 0
   solver <- newSolver
-            "/usr/bin/z3"
+            "z3"
             ["-smt2", "-in", "-T:" ++ show timeout]
             $ Just logger
   setLogic solver "QF_NIA"
@@ -30,7 +30,7 @@ newCVC4Solver timeout = do
 newCVC4SolverWithLogger :: Int -> IO Solver
 newCVC4SolverWithLogger timeout = do
   logger <- newLogger 0
-  solver <- newSolver "/usr/bin/cvc4"
+  solver <- newSolver "cvc4"
             [ "--lang=smt2"
             , "-i"
             , "--tlimit-per=" ++ show (timeout * 1000)

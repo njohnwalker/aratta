@@ -5,9 +5,12 @@ import Control.Monad ((>=>))
 import Control.Monad.Reader hiding ( guard )
 import Control.Monad.State hiding ( guard )
 import Control.Lens ( transform, (^?), over, set, _1, (<&>) )
+import Control.Concurrent
+import Control.Concurrent.STM
 
 import           Data.Data
 import           Data.Data.Lens ( biplate )
+import           Data.Foldable 
 import           Data.List ( find, break )
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -23,9 +26,56 @@ import           Language.GCL.Environment
 import qualified Language.GCL.SMTLib as GCL.SMT
 import           Language.GCL.Syntax.Abstract
 
+import SemanticModel.PredicateTransformer
 import SemanticModel.PredicateTransformer.Validity
 
 type GCLValidity = Validity BExp
+
+instance PredicateTransformer BExp where
+  invariantTop = False_
+
+  invariantJoin = (:&:)
+
+  checkValidVCs = checkValidVCs'
+
+  -- checkValidVCs vcs newSolver = do
+  --   counterVar <- newTVarIO $ toList vcs
+  --   resultVar <- newTVarIO Valid
+  --   solverThreadIds <- mapM forkIO
+  --     $ fmap (checkSolverVC counterVar resultVar) vcs
+  
+  --   validityResult <- atomically $ readTVar counterVar >>= \case
+  --     _:_ -> retry
+  --     [] -> readTVar resultVar
+
+  --   mapM_ killThread solverThreadIds
+
+  --   return validityResult
+
+  --   where
+  --     fullClosure = foldMap getClosure vcs
+
+  --     checkSolverVC counterVar resultVar vc = do
+  --       solver <- newSolver
+  --       GCL.SMT.declareHeader solver fullClosure
+  --       GCL.SMT.boolToSMTAssertion solver $ Not vc
+  --       smtResult <- SMT.check solver
+  --       validityResult <- case smtResult of
+  --         SMT.Unsat -> SMT.stop solver >> return Valid
+  --         SMT.Unknown -> SMT.stop solver >> return (UnknownValidity vc)
+  --         SMT.Sat -> do
+  --           model <- GCL.SMT.getModel solver fullClosure
+  --           SMT.stop solver
+  --           return $ Invalid vc model
+
+  --       if isValid validityResult
+  --       then atomically
+  --            $ modifyTVar counterVar
+  --            $ \case [] -> [] ; xs -> tail xs
+  --       else atomically
+  --            $ writeTVar counterVar []
+  --            >> modifyTVar resultVar
+  --            \case Valid -> validityResult ; res -> res
 
 -------------------
 -- VC Validation --
@@ -34,34 +84,32 @@ type ParameterizedInvariant = Reader BExp
 specifyInvariant :: BExp -> ParameterizedInvariant a -> a
 specifyInvariant = flip runReader
 
-checkValidVCs
-  :: IO SMT.Solver -- Solver MVar for SMT
-  -> BExp -- Candidate invariant
-  -> ParameterizedInvariant [BExp] -- Program invariants
+checkValidVCs'
+  :: Traversable t
+  => t BExp -- Candidate invariant
+  -> IO SMT.Solver -- Solver action for SMT
   -> IO GCLValidity
-checkValidVCs newSolver inv pVCs = checkSolverVC vcs
+checkValidVCs' vcs newSolver = checkSolverVC $ toList vcs
   where
-    vcs = specifyInvariant inv pVCs
-    fullClosure = getClosure vcs `Set.union` getClosure inv
-
     checkSolverVC :: [BExp] -> IO GCLValidity
     checkSolverVC [] = return Valid
     checkSolverVC (vc:vcs) = do
-       solver <- newSolver
-       GCL.SMT.declareHeader solver fullClosure
-       GCL.SMT.boolToSMTAssertion solver $ Not vc
-       SMT.check solver
-         >>= \case
-           SMT.Sat -> do
-             model <- GCL.SMT.getModel solver fullClosure
-             SMT.stop solver
-             return $ Invalid vc model
-           SMT.Unsat -> do
-             SMT.stop solver
-             checkSolverVC vcs
-           SMT.Unknown -> do
-             SMT.stop solver
-             return (UnknownValidity vc)
+      let closure = getClosure vc
+      solver <- newSolver
+      GCL.SMT.declareHeader solver closure
+      GCL.SMT.boolToSMTAssertion solver $ Not vc
+      SMT.check solver
+        >>= \case
+        SMT.Sat -> do
+          model <- GCL.SMT.getModel solver closure
+          SMT.stop solver
+          return $ Invalid vc model
+        SMT.Unsat -> do
+          SMT.stop solver
+          checkSolverVC vcs
+        SMT.Unknown -> do
+          SMT.stop solver
+          return (UnknownValidity vc)
 
 -------------------
 -- VC Generation --

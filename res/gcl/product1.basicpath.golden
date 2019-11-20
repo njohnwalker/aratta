@@ -1,5 +1,5 @@
 Path 1:
-  { PRE: true }
+  { PRE: m >= 0 & n >= 0 }
   ; Substitute
       @m1 -> 0
       @n1 -> 0

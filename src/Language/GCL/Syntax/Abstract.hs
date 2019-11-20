@@ -241,15 +241,15 @@ prettyAnn tag (Just bexp) = tag <> (parens $ pretty bexp)
 
 prettyIntBinop :: Doc ann -> IExp -> IExp -> Doc ann
 prettyIntBinop op e1 e2 =
-  smartParensIExp e1 <> softline <> op <> softline <> smartParensIExp e2
+  smartParensIExp e1 <+> op <+> smartParensIExp e2
 
 prettyRelBinop :: Doc ann -> IExp -> IExp -> Doc ann
 prettyRelBinop op e1 e2 =
-  pretty e1 <> softline <> op <> softline <> pretty e2
+  pretty e1 <+> op <+> pretty e2
 
 prettyBoolBinop :: Doc ann -> BExp -> BExp -> Doc ann
 prettyBoolBinop op e1 e2 =
-  smartParensBExp e1 <> softline <> op <> softline <> smartParensBExp e2
+  smartParensBExp e1 <+> op <+> smartParensBExp e2
 
 ---------------------------------------------
 -- Generators For GCL Constructs and Tests --

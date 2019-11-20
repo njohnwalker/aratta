@@ -1,4 +1,4 @@
-@req()
+@req(m >= 0 & n >= 0)
 m1, n1, res := 0, 0, 0 ;
 do @inv()
 // invariant == m1 <= m & res == m1 * n

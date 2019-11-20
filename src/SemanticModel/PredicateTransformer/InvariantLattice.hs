@@ -8,7 +8,7 @@ import           Data.Hashable
 import qualified Data.HashMap.Lazy as Map
 import qualified Data.HashSet as Set
 
-import Language.GCL ( BExp((:&:)) )
+import SemanticModel.PredicateTransformer
 
 type Invariant = Set.HashSet Int 
 
@@ -44,7 +44,9 @@ updateLattice
   -> ([Invariant], LazyLattice)
 updateLattice invs invKey lattice =  
   let newInvariants = [ let invKey' = Set.insert i invKey
-                        in (invKey', nMinusOneSubsets invKey')
+                            implicands' = Set.delete invKey
+                              $ nMinusOneSubsets invKey'
+                        in (invKey', implicands')
                       | i <- zipWith const [1..] invs
                       , not (i `Set.member` invKey)
                       ]
@@ -66,14 +68,13 @@ updateLattice invs invKey lattice =
 
   in (nextInvariants, lattice'')
 
-
 -- | calculate the maximal proper subsets of an Invariant set
 nMinusOneSubsets :: Invariant -> Set.HashSet Invariant
 nMinusOneSubsets invKey = Set.fromList [Set.delete i invKey | i <- Set.toList invKey]
 
 -- | calculate the actual invariant from the invariant key set
-getInvariant :: Invariant -> Map.HashMap Int BExp -> BExp
-getInvariant invKey invMap = foldl1 (:&:)
+getInvariant :: PredicateTransformer inv => Invariant -> Map.HashMap Int inv -> inv
+getInvariant invKey invMap = foldl1 invariantJoin
   [inv | (flip Map.lookup invMap -> Just inv) <- Set.toList invKey]
 
 -- | get the maximal invariant of the lattice (not Top)

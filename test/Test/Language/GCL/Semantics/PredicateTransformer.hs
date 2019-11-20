@@ -13,6 +13,7 @@ import Test.Tasty
 import Test.Tasty.Golden ( goldenVsStringDiff, findByExtension )
 
 import Language.GCL
+import SemanticModel.PredicateTransformer
 import SemanticModel.PredicateTransformer.Validity
 
 ------------------------
@@ -31,7 +32,7 @@ validitySpec description pgmPath invariant assertion=
       let closure = getClosure pgm
           pVCsWP = map wpPath <$> getProgramPaths pgm
           pVCsSP = map spPath <$> getProgramPaths pgm
-          checkValid = checkValidVCs (newCVC4Solver 30) invariant
+          checkValid = flip checkValidVCs (newCVC4Solver 30) . specifyInvariant invariant
       assertion $ checkValid pVCsWP
       assertion $ checkValid pVCsSP
 
