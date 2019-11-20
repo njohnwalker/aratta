@@ -17,79 +17,58 @@ import Language.GCL
 import Control.Exception
 import Say
 
-type InvalidInvariantBuffer = TQueue Invariant
 type ValidInvariantTMVar inv = TMVar inv
 type InvariantLatticeTVar = TVar LazyLattice
 
+type MonadSolver inv
+  = MonadReader (SolverEnv inv)
+
+data SolverEnv inv = SolverEnv
+  { invariantList :: [inv]
+  , invariantMap :: InvariantMap inv
+  , invariantLatticeTVar :: InvariantLatticeTVar
+  , invariantResultTMVar :: ValidInvariantTMVar inv
+  , invariantParameterizedVCs :: ParameterizedInvariant [inv]
+  }
+
+runSolver :: SolverEnv inv -> ReaderT (SolverEnv inv) m a -> m a
+runSolver env = flip runReaderT env 
+
+-- | Initialize invariant lattice and transaction variables
+--   and spawn solver processes on each singleton candidate
+--   invariant 
 beginSolverFactory
   :: [BExp]
   -> ParameterizedInvariant [BExp]
   -> ValidInvariantTMVar BExp
   -> IO ()
 beginSolverFactory invs pVCs mResultVar =
-  let (factoryEnv, initialState, initialInvPairs) = initialLattice invs
+  let (invMap, initialState, initialInvariants) = initialLattice invs
   in  do
-    invalidBuffer <- newTQueueIO
     invariantLatticeTVar <- newTVarIO initialState
+
+    let solverEnv = SolverEnv
+          { invariantList = invs
+          , invariantMap = invMap
+          , invariantLatticeTVar = invariantLatticeTVar
+          , invariantResultTMVar = mResultVar
+          , invariantParameterizedVCs = pVCs
+          }
     
-    mapM_ forkIO [ solverThread invKey inv pVCs mResultVar invalidBuffer
-                 | (invKey, inv) <- initialInvPairs ]
-
-    runFactory factoryEnv initialState
-      $ solverFactory' factoryEnv mResultVar invalidBuffer invariantLatticeTVar 
-  where
-    runFactory env state = flip runReaderT env 
-    
-    solverFactory'
-      :: (MonadFactory BExp m, MonadIO m)
-      => FactoryEnv BExp
-      -> ValidInvariantTMVar BExp
-      -> InvalidInvariantBuffer
-      -> InvariantLatticeTVar
-      -> m ()
-    solverFactory' factoryEnv mResultVar invalidBuffer invariantLatticeTVar = do
-      resultIsEmpty <- liftIO $ atomically $ isEmptyTMVar mResultVar
-      if not resultIsEmpty then
-        -- halt factory if result has been found
-        say "Factory Halting" >> return ()
-  
-        -- otherwise,
-        --    - read the buffer
-        --    - update the lattice
-        --    - spawn next solver threads
-        else do
-        invalidInvariant <- liftIO $ atomically $ readTQueue invalidBuffer
-        if invalidInvariant == maxInvariant invs
-          then liftIO $ atomically $ putTMVar mResultVar False_
-          else do
-
-          nextInvariants <- liftIO
-            $ atomically
-            $ stateTVar invariantLatticeTVar
-            $ updateLattice [1.. length invs] invalidInvariant 
-
-          sayShow nextInvariants
-
-          let invMap = invariantMap factoryEnv
-              solverThreads = 
-                [ solverThread invKey (getInvariant invKey invMap)
-                  pVCs mResultVar invalidBuffer
-                | invKey <- nextInvariants
-                ]
-
-          liftIO $ mapM_ forkIO solverThreads
-
-          solverFactory' factoryEnv mResultVar invalidBuffer invariantLatticeTVar
+    mapM_ forkIO [ runSolver solverEnv $ solverThread invKey
+                 | invKey <- initialInvariants ]
 
 solverThread
-  :: Invariant
-  -> BExp
-  -> ParameterizedInvariant [BExp]
-  -> ValidInvariantTMVar BExp
-  -> InvalidInvariantBuffer
-  -> IO ()
-solverThread invKey inv pVCs mResultVar invalidBuffer = do
-  resultIsEmpty <- atomically $ isEmptyTMVar mResultVar 
+  :: (MonadSolver BExp m, MonadIO m)
+  => Invariant
+  -> m ()
+solverThread invKey = do
+  SolverEnv{..} <- ask
+
+  let inv = getInvariant invKey invariantMap  
+  
+  resultIsEmpty <- liftIO $ atomically $ isEmptyTMVar invariantResultTMVar 
+
   if not resultIsEmpty then return ()
     else do
     show invKey `seq` return ()
@@ -99,18 +78,23 @@ solverThread invKey inv pVCs mResultVar invalidBuffer = do
       , "    Index: "++ show invKey
       , "    Invariant: "++ show (pretty inv) 
       ]
-  
-    validity <-
-      checkValidVCs (newCVC4Solver 10) inv pVCs
-  
-    case validity of
+
+    liftIO ( checkValidVCs
+             (newCVC4Solver 10)
+             inv
+             invariantParameterizedVCs
+           )
+      >>= \case
+      -- Invariant is valid, report it to the TVar
       Valid -> do
         sayString $ unlines
           [ "Success! Found valid VC:"
           , "    Index: "++ show invKey
           , "    Invariant: "++ show (pretty inv) 
           ]
-        atomically $ putTMVar mResultVar inv
+        liftIO $ atomically $ putTMVar invariantResultTMVar inv
+
+      -- Invariant is invalid, spawn new solvers
       Invalid vc env -> do
         sayString $ unlines
           [ "Invalid VC:"
@@ -119,7 +103,10 @@ solverThread invKey inv pVCs mResultVar invalidBuffer = do
           , "    VC: "++ show (pretty vc)
           , "With counterexample: "++ show env
           ]
-        atomically $ writeTQueue invalidBuffer invKey
+        solverFactory invKey
+
+      -- Invariant has unknown validity;
+      -- pessimistically, spawn new solvers
       UnknownValidity vc -> do
         sayString $ unlines
           [ "Unknown result from solver,"
@@ -128,4 +115,26 @@ solverThread invKey inv pVCs mResultVar invalidBuffer = do
           , "     Invariant: "++ show (pretty inv)
           , "     VC: "++ show (pretty vc)
           ]
-        atomically $ writeTQueue invalidBuffer invKey
+        solverFactory invKey
+    
+    where
+      -- update invariant lattice and spawn new solvers
+      solverFactory
+        :: (MonadSolver BExp m, MonadIO m)
+        => Invariant -> m ()
+      solverFactory invalidInvariant = do
+        solverEnv@SolverEnv{..} <- ask
+        if invalidInvariant == maxInvariant invariantList 
+          then liftIO $ atomically $ putTMVar invariantResultTMVar False_
+          else do
+          
+          nextInvariants <- liftIO
+            $ atomically
+            $ stateTVar invariantLatticeTVar
+            $ updateLattice invariantList invalidInvariant 
+                  
+          liftIO $ mapM_ forkIO
+            [ runSolver solverEnv
+                  $ solverThread invKey
+            | invKey <- nextInvariants
+            ]

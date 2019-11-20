@@ -12,45 +12,54 @@ import Language.GCL ( BExp((:&:)) )
 
 type Invariant = Set.HashSet Int 
 
+type InvariantMap inv = Map.HashMap Int inv
+
 type LazyLattice = Map.HashMap Invariant (Set.HashSet Invariant)
 
-data FactoryEnv inv = FactoryEnv
-  { invariantList :: [inv]
-  , invariantMap :: Map.HashMap Int inv
-  }
-
-type MonadFactory inv
-  = MonadReader (FactoryEnv inv)
-
+-- | Calculate the initial state for concurrent solving system
 initialLattice
-  :: [inv] -> (FactoryEnv inv, LazyLattice, [(Invariant, inv)])
+  :: [inv]
+  -> (InvariantMap inv, LazyLattice, [Invariant])
 initialLattice invs =
   let invMap = Map.fromList $ zip [1..] invs
-      idxList = zipWith const [1..] invs
-      twoElementSubsets = [Set.fromList [x,y] | x <- idxList, y <- idxList, x /= y]
-      initialLazyLattice = Map.fromList $ zip
-        twoElementSubsets
-        $ map (Set.map Set.singleton) twoElementSubsets
-      initialPairs = map Set.singleton [1..] `zip` invs
-  in (FactoryEnv invs invMap, initialLazyLattice, initialPairs)
 
+      idxList = zipWith const [1..] invs
+
+      twoElementSubsets = [ Set.fromList [x,y] | x <- idxList, y <- idxList, x /= y ]
+
+      initialLazyLattice = Map.fromList $ zipWith
+        (\l r -> (l, Set.map Set.singleton r))
+        twoElementSubsets
+        twoElementSubsets
+
+      initialInvariants = zipWith (const . Set.singleton) [1..] invs
+      
+  in (invMap,  initialLazyLattice, initialInvariants)
+
+-- | Calculate the resulting lattice, given a newly invalidated invariant
 updateLattice
-  :: [Int]
+  :: [inv]
   -> Invariant
   -> LazyLattice
   -> ([Invariant], LazyLattice)
-updateLattice invariantIdxs invKey lattice =  
+updateLattice invs invKey lattice =  
   let newInvariants = [ let invKey' = Set.insert i invKey
                         in (invKey', nMinusOneSubsets invKey')
-                      | i <- invariantIdxs
+                      | i <- zipWith const [1..] invs
                       , not (i `Set.member` invKey)
                       ]
 
+      -- update lattice with newly reachable invariants and
+      -- remove the invalidated invariant from the lesser elements of each
+      -- reachable invariant 
       lattice' = foldr addNewInvariant lattice newInvariants
-        where
-          addNewInvariant (invariant, implicands) =
-            Map.insertWith (\_new old -> Set.delete invKey old) invariant implicands
+        where addNewInvariant (invariant, implicands)
+                = Map.insertWith
+                  (\_new old -> Set.delete invKey old)
+                  invariant
+                  implicands
 
+      -- extract all invariants whose lesser elements have been invalidated 
       nextInvariants = map fst $ filter (Set.null . snd) $ Map.toList lattice'  
 
       lattice'' = Map.filter (not . Set.null) lattice' 
