@@ -38,45 +38,6 @@ instance PredicateTransformer BExp where
 
   checkValidVCs = checkValidVCs'
 
-  -- checkValidVCs vcs newSolver = do
-  --   counterVar <- newTVarIO $ toList vcs
-  --   resultVar <- newTVarIO Valid
-  --   solverThreadIds <- mapM forkIO
-  --     $ fmap (checkSolverVC counterVar resultVar) vcs
-  
-  --   validityResult <- atomically $ readTVar counterVar >>= \case
-  --     _:_ -> retry
-  --     [] -> readTVar resultVar
-
-  --   mapM_ killThread solverThreadIds
-
-  --   return validityResult
-
-  --   where
-  --     fullClosure = foldMap getClosure vcs
-
-  --     checkSolverVC counterVar resultVar vc = do
-  --       solver <- newSolver
-  --       GCL.SMT.declareHeader solver fullClosure
-  --       GCL.SMT.boolToSMTAssertion solver $ Not vc
-  --       smtResult <- SMT.check solver
-  --       validityResult <- case smtResult of
-  --         SMT.Unsat -> SMT.stop solver >> return Valid
-  --         SMT.Unknown -> SMT.stop solver >> return (UnknownValidity vc)
-  --         SMT.Sat -> do
-  --           model <- GCL.SMT.getModel solver fullClosure
-  --           SMT.stop solver
-  --           return $ Invalid vc model
-
-  --       if isValid validityResult
-  --       then atomically
-  --            $ modifyTVar counterVar
-  --            $ \case [] -> [] ; xs -> tail xs
-  --       else atomically
-  --            $ writeTVar counterVar []
-  --            >> modifyTVar resultVar
-  --            \case Valid -> validityResult ; res -> res
-
 -------------------
 -- VC Validation --
 type ParameterizedInvariant = Reader BExp
@@ -280,3 +241,45 @@ instance Pretty BasicPath where
       prettyPath i path
         = "Path" <+> pretty i <> ":" <> line
           <> indent 2 (pretty path)
+
+-- wip threaded implementtion of checkvalidvcs
+-- caused "exhausted resource" exception
+checkValidVCsThreaded vcs newSolver = do
+  counterVar <- newTVarIO $ toList vcs
+  resultVar <- newTVarIO Valid
+  solverThreadIds <- mapM forkIO
+    $ fmap (checkSolverVC counterVar resultVar) vcs
+  
+  validityResult <- atomically $ readTVar counterVar >>= \case
+    _:_ -> retry
+    [] -> readTVar resultVar
+
+  mapM_ killThread solverThreadIds
+
+  return validityResult
+
+  where
+    fullClosure = foldMap getClosure vcs
+
+    checkSolverVC counterVar resultVar vc = do
+      solver <- newSolver
+      GCL.SMT.declareHeader solver fullClosure
+      GCL.SMT.boolToSMTAssertion solver $ Not vc
+      smtResult <- SMT.check solver
+      validityResult <- case smtResult of
+        SMT.Unsat -> SMT.stop solver >> return Valid
+        SMT.Unknown -> SMT.stop solver >> return (UnknownValidity vc)
+        SMT.Sat -> do
+          model <- GCL.SMT.getModel solver fullClosure
+          SMT.stop solver
+          return $ Invalid vc model
+
+      if isValid validityResult
+      then atomically
+           $ modifyTVar counterVar
+           $ \case [] -> [] ; xs -> tail xs
+      else atomically
+           $ writeTVar counterVar []
+           >> modifyTVar resultVar
+           \case Valid -> validityResult ; res -> res
+

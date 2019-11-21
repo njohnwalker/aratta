@@ -10,7 +10,6 @@ import Options.Applicative.MainOptions
 
 import RunImp   ( runImp )
 import RunImpPP ( runImpPP )
-import RunGCL   ( runGCL )
 
 main :: IO ()
 main = do
@@ -20,6 +19,6 @@ main = do
   ; (case language options of
       Imp   -> runImp
       ImpPP -> runImpPP 
-      GCL   -> runGCL
+      _   -> error "GCL execution not yet implemented "
     ) srcFile options
   }
