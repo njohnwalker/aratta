@@ -3,7 +3,7 @@ m1, n1, res := 0, 0, 0 ;
 do @inv()
 [] m1 < m ->
       n1 := 0 ;
-      do @inv()
+      do @inv(n1 <= n & (res == (m1 * n) + n1 & (m1 < m & (0 <= n1 & (0 <= m1 & 0 <= res)))))
       [] n1 < n ->
             res, n1 := res + 1, n1 + 1 ;
       od

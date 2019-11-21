@@ -21,14 +21,16 @@ import SemanticModel.PredicateTransformer
 import SemanticModel.PredicateTransformer.Validity
 import SemanticModel.PredicateTransformer.ConcurrentSolving
 
-runGCL :: Text -> MainOptions -> IO ()
-runGCL srcText options = do
-  let file = sourceFile options
-      semantics = semanticModel options
-      mInFile = inputFile options
-      mInvariantFile = invariantFile options
-  putStrLn $ "Parsing file \'" ++ file ++ "\'..."
-  case parseGCL file srcText of
+runGCL
+  :: Text
+  -> FilePath
+  -> Maybe FilePath
+  -> (BasicPath -> BExp)
+  -> Bool
+  -> IO ()
+runGCL srcText srcPath mInvListPath pt isVerbose = do
+  putStrLn $ "Parsing file \'" ++ srcPath ++ "\'..."
+  case parseGCL srcPath srcText of
     Left errorOut -> putStrLn "Parsing Failed!"
                      >> putStrLn errorOut
                      >> System.exitFailure
@@ -45,14 +47,14 @@ runGCL srcText options = do
         $ specifyInvariant (Var "INVARIANT" :==: Var "PLACEHOLDER")
         $ pPgmPaths
 
-      let invariantFilePath = maybe (file <> ".inv") id mInvariantFile
-          pVCs = map spPath <$> pPgmPaths
+      let invariantFilePath = maybe (srcPath <> ".inv") id mInvListPath
+          pVCs = map pt <$> pPgmPaths
           trivialVCs = specifyInvariant True_ pVCs
 
       putStrLn "Attempting Verification with trivial invariant (True)..."
 
       validityTrivial <- checkValidVCs trivialVCs (newCVC4Solver 10)
-  
+
       if isValid validityTrivial
         then System.exitSuccess
         else do
@@ -60,14 +62,18 @@ runGCL srcText options = do
         
         mValidityResultVar <- newEmptyTMVarIO
 
-        forkIO $ beginSolverFactory invariantList pVCs mValidityResultVar
-      
+        forkIO $ beginSolverFactory
+          isVerbose
+          invariantList
+          pVCs
+          mValidityResultVar
+
         validityConcurrent <- atomically $ readTMVar mValidityResultVar
 
         case validityConcurrent of
-          False_ -> say "Exhausted all candidate invariants, No Valid results."
+          False_ -> say "Result: Exhausted all candidate invariants, No Valid results."
                     >> System.exitFailure
-          vc -> do say $ "Found valid invariant: " <> renderPretty (pretty vc)
+          vc -> do say $ "Result: Found valid invariant: " <> renderPretty (pretty vc)
                    System.exitSuccess
 
 retrieveInvariantList :: FilePath -> IO [BExp]

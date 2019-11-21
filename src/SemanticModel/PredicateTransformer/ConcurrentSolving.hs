@@ -34,6 +34,7 @@ data SolverEnv inv = SolverEnv
   , invariantLatticeTVar :: InvariantLatticeTVar
   , invariantResultTMVar :: ValidInvariantTMVar inv
   , invariantParameterizedVCs :: Reader inv [inv]
+  , isVerbose :: Bool
   }
 
 -- | unpack the Reader Monad transformer from a Solver Action
@@ -47,11 +48,12 @@ beginSolverFactory
   :: ( Pretty inv
      , PredicateTransformer inv
      )
-  => [inv]
+  => Bool
+  -> [inv]
   -> Reader inv [inv]
   -> ValidInvariantTMVar inv
   -> IO ()
-beginSolverFactory invs pVCs mResultVar =
+beginSolverFactory isVerbose invs pVCs mResultVar =
   let (invMap, initialState, initialInvariants) = initialLattice invs
   in  do
     invariantLatticeTVar <- newTVarIO initialState
@@ -62,6 +64,7 @@ beginSolverFactory invs pVCs mResultVar =
           , invariantLatticeTVar = invariantLatticeTVar
           , invariantResultTMVar = mResultVar
           , invariantParameterizedVCs = pVCs
+          , isVerbose = isVerbose
           }
 
     mapM_ forkIO [ runSolver solverEnv $ solverThread invKey
@@ -85,7 +88,7 @@ solverThread invKey = do
     else do
     show invKey `seq` return ()       -- race on stdout...
     show (pretty inv) `seq` return () -- many threads created at once
-    sayString $ unlines
+    when isVerbose $ sayString $ unlines
       [ "Trying Candidate Invariant:"
       , "    Index: "++ show (Set.toList invKey)
       , "    Invariant: "++ show (pretty inv) 
@@ -99,7 +102,7 @@ solverThread invKey = do
       -- Invariant is valid, report it to the TVar
       Valid -> do
         sayString $ unlines
-          [ "Success! Found valid VC:"
+          [ "Success! Found Valid Invariant:"
           , "    Index: "++ show (Set.toList invKey)
           , "    Invariant: "++ show (pretty inv) 
           ]
@@ -107,7 +110,7 @@ solverThread invKey = do
 
       -- Invariant is invalid, spawn new solvers
       Invalid vc env -> do
-        sayString $ unlines
+        when isVerbose $ sayString $ unlines
           [ "Invalid VC:"
           , "    Index: "++ show (Set.toList invKey)
           , "    Invariant: "++ show (pretty inv)
@@ -119,7 +122,7 @@ solverThread invKey = do
       -- Invariant has unknown validity;
       -- pessimistically, spawn new solvers
       UnknownValidity vc -> do
-        sayString $ unlines
+        when isVerbose $ sayString $ unlines
           [ "Unknown result from solver,"
           , "treating as Invalid:"
           , "     Index: "++ show (Set.toList invKey)
