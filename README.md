@@ -1,52 +1,24 @@
-# semantic-playground
+# arrata
 
-`semantic-playground` is a library of comprised of many different languages implemented in many different semantic frameworks using Haskell as a meta-language.
-
-So far we have:
-
-#### Languages
-- [x] IMP
-- [x] IMP++
-- [ ] LAMBDA
-- [ ] LAMBDA++
-- [ ] Guarded Command Language
-
-#### Semantics
-
-- [x] Small-Step SOS (Transition Semantics)
-- [ ] Big-Step SOS (Natural Semantics)
-- [ ] Denotational Semantics
-- [ ] Modular SOS
-- [ ] RSEC - Reduction Semantics with Evaluation Contexts
-- [ ] CK Machine
-- [ ] SECD Machine
-- [ ] SCC Machine
-- [ ] CHAM - Chemical Abstract Machine
-- [ ] Predicate Transformers
+`aratta` is a library intended to implement many different languages in different semantic frameworks using Haskell as a meta-language.
 
 ## Getting Started
 
-This library is built using the Haskell `stack` build tool. Instructions to install `stack` are [here](https://docs.haskellstack.org/en/stable/README/#how-to-install)
+This library is built using the Haskell `stack` build tool. Instructions to install `stack` are [here](https://docs.haskellstack.org/en/stable/README/#how-to-install
 
-Once `stack` is installed use 
+Currently there are two executables in this project:
 
-```bash
-stack install semantic-styles\:exe\:semantic-run 
+- `semantic-run` executes a program given the interpretter defined for a given language.
+- `houdini-verify` searches a list of candidate invariants for a valid invariant of a given program.
+
+You may install them with the command
+
 ```
-
-To install the main executable of the library.
-
-Once installed,
-
-```bash
-semantic-run -h
+stack install
 ```
-
-will give you the details of what flags and options to use to run programs.
-Some example runs are included in the next section.
 
 ## Examples
-
+### `semantic-run`
 To execute the program `collatz.imp` as an IMP program using the Small-Step SOS (Transition) semantic framework:
 
 ```bash
@@ -59,6 +31,11 @@ To execute the IMP++ program `incUp.imp` with input from the file `oneUpTo5.in`:
 semantic-run --imp++ -t res/imp++/incUp.imp --input res/imp/oneUpTo5.in
 ```
 
-## Language Interpretters
+### `houdini-verify`
+`houdini-verify -h` will give you a more detailed explanation of the options of the program.
 
-Under Construction
+```
+houdini-verify --src res/gcl/product1.gcl --inv res/gcl/product1.gcl.inv
+```
+
+will produce a valid invariant for a simple multiplication program
