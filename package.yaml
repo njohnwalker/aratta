@@ -1,6 +1,6 @@
-name:                semantic-playground
+name:                aratta
 version:             0.1.0.2
-github:              "njohnwalker/semantic-playground"
+github:              "njohnwalker/aratta"
 license:             BSD3
 author:              "Nick Walker"
 maintainer:          "nick.j.walker1@gmail.com"
@@ -17,7 +17,7 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/njohnwalker/semantic-playground#readme>
+description:         Please see the README on GitHub at <https://github.com/njohnwalker/aratta#readme>
 
 dependencies:
 - base >= 4.7 && < 5
@@ -88,7 +88,7 @@ executables:
     - -with-rtsopts=-N
     - -O2
     dependencies:
-    - semantic-playground
+    - aratta
 
   semantic-run:
     main:                Main.hs
@@ -101,10 +101,10 @@ executables:
     - -with-rtsopts=-N
     - -O2
     dependencies:
-    - semantic-playground
+    - aratta
 
 tests:
-  semantic-playground-test:
+  aratta-test:
     main:                Driver.hs
     source-dirs:
       - test
@@ -113,7 +113,7 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - semantic-playground
+    - aratta
     - tasty
     - tasty-discover
     - tasty-hspec
