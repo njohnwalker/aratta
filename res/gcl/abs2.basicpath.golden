@@ -1,0 +1,24 @@
+Path 1:
+  { PRE: true }
+  ; Assume x < 0 & y < 0
+  ; Substitute
+      @x -> 0 - x
+  ; Substitute
+      @y -> 0 - y
+  { POST: x >= 0 & y >= 0 }
+Path 2:
+  { PRE: true }
+  ; Assume x < 0 & ~ y < 0
+  ; Substitute
+      @x -> 0 - x
+  { POST: x >= 0 & y >= 0 }
+Path 3:
+  { PRE: true }
+  ; Assume ~ x < 0 & y < 0
+  ; Substitute
+      @y -> 0 - y
+  { POST: x >= 0 & y >= 0 }
+Path 4:
+  { PRE: true }
+  ; Assume ~ x < 0 & ~ y < 0
+  { POST: x >= 0 & y >= 0 }

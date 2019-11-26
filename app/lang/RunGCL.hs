@@ -53,10 +53,11 @@ runGCL srcText srcPath mInvListPath pt isVerbose = do
 
       putStrLn "Attempting Verification with trivial invariant (True)..."
 
-      validityTrivial <- checkValidVCs trivialVCs (newCVC4Solver 10)
+      validityTrivial <- checkValidVCs trivialVCs (newCVC4Solver 30)
 
       if isValid validityTrivial
-        then System.exitSuccess
+        then putStrLn "Program is valid with trivial invariant 'true'"
+             >> System.exitSuccess
         else do
         invariantList <- retrieveInvariantList invariantFilePath
         

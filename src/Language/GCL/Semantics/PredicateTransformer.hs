@@ -175,14 +175,14 @@ sp ins pre = case ins of
   Substitute vs es -> do
     freshVs <- mapM fresh vs
     let subs = zip vs (map Var freshVs)
-        es' = map (substituteIExp subs) es
+        es' = substitute subs es
     return $ gclAnd
            $ zipWith (\v e' -> Var v :==: e') vs es'
            ++ [substitute subs pre]
 
 -------------
 -- helpers --
-substitute :: [(Variable,IExp)] -> BExp -> BExp
+substitute :: Data a => [(Variable,IExp)] -> a -> a
 substitute = over biplate . substituteIExp
 
 substituteIExp :: [(Variable, IExp)] -> IExp ->IExp

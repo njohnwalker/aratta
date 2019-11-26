@@ -2,7 +2,7 @@ Path 1:
   { PRE: false }
   ; Substitute
       @x -> 10
-  ; Assume ((x == y & x <= y) & ((foo >= baz | ~ true) & (0 > 1 | x % 2 == 0))) & true
+  ; Assume ((x == y & x <= y) & (foo >= baz | ((~ true & 0 > 1) | x % 2 == 0))) & true
   ; Substitute
       @y -> y + 1
   ; Substitute
@@ -44,7 +44,7 @@ Path 8:
   { PRE: false }
   ; Substitute
       @x -> 10
-  ; Assume ((x == y & x <= y) & ((foo >= baz | ~ true) & (0 > 1 | x % 2 == 0))) & ~ true
+  ; Assume ((x == y & x <= y) & (foo >= baz | ((~ true & 0 > 1) | x % 2 == 0))) & ~ true
   ; Substitute
       @y -> y + 1
   ; Substitute
@@ -82,7 +82,7 @@ Path 15:
   { PRE: false }
   ; Substitute
       @x -> 10
-  ; Assume ((x == y & x <= y) & ~ ((foo >= baz | ~ true) & (0 > 1 | x % 2 == 0))) & true
+  ; Assume ((x == y & x <= y) & ~ (foo >= baz | ((~ true & 0 > 1) | x % 2 == 0))) & true
   ; Substitute
       @y -> y + 1
   ; Substitute
@@ -122,7 +122,7 @@ Path 22:
   { PRE: false }
   ; Substitute
       @x -> 10
-  ; Assume ((x == y & x <= y) & ~ ((foo >= baz | ~ true) & (0 > 1 | x % 2 == 0))) & ~ true
+  ; Assume ((x == y & x <= y) & ~ (foo >= baz | ((~ true & 0 > 1) | x % 2 == 0))) & ~ true
   ; Substitute
       @y -> y + 1
   ; Substitute
@@ -158,7 +158,7 @@ Path 29:
   { PRE: false }
   ; Substitute
       @x -> 10
-  ; Assume ((x == y & ~ x <= y) & ((foo >= baz | ~ true) & (0 > 1 | x % 2 == 0))) & true
+  ; Assume ((x == y & ~ x <= y) & (foo >= baz | ((~ true & 0 > 1) | x % 2 == 0))) & true
   ; Substitute
       @y -> y + 1
   ; Substitute
@@ -174,7 +174,7 @@ Path 30:
   { PRE: false }
   ; Substitute
       @x -> 10
-  ; Assume ((x == y & ~ x <= y) & ((foo >= baz | ~ true) & (0 > 1 | x % 2 == 0))) & ~ true
+  ; Assume ((x == y & ~ x <= y) & (foo >= baz | ((~ true & 0 > 1) | x % 2 == 0))) & ~ true
   ; Substitute
       @y -> y + 1
   ; Substitute
@@ -186,7 +186,7 @@ Path 31:
   { PRE: false }
   ; Substitute
       @x -> 10
-  ; Assume ((x == y & ~ x <= y) & ~ ((foo >= baz | ~ true) & (0 > 1 | x % 2 == 0))) & true
+  ; Assume ((x == y & ~ x <= y) & ~ (foo >= baz | ((~ true & 0 > 1) | x % 2 == 0))) & true
   ; Substitute
       @y -> y + 1
   ; Substitute
@@ -200,7 +200,7 @@ Path 32:
   { PRE: false }
   ; Substitute
       @x -> 10
-  ; Assume ((x == y & ~ x <= y) & ~ ((foo >= baz | ~ true) & (0 > 1 | x % 2 == 0))) & ~ true
+  ; Assume ((x == y & ~ x <= y) & ~ (foo >= baz | ((~ true & 0 > 1) | x % 2 == 0))) & ~ true
   ; Substitute
       @y -> y + 1
   ; Substitute
@@ -210,7 +210,7 @@ Path 33:
   { PRE: false }
   ; Substitute
       @x -> 10
-  ; Assume ((~ x == y & x <= y) & ((foo >= baz | ~ true) & (0 > 1 | x % 2 == 0))) & true
+  ; Assume ((~ x == y & x <= y) & (foo >= baz | ((~ true & 0 > 1) | x % 2 == 0))) & true
   ; Substitute
       @y -> 7 - y
   { POST: INVARIANT == PLACEHOLDER }
@@ -250,7 +250,7 @@ Path 40:
   { PRE: false }
   ; Substitute
       @x -> 10
-  ; Assume ((~ x == y & x <= y) & ((foo >= baz | ~ true) & (0 > 1 | x % 2 == 0))) & ~ true
+  ; Assume ((~ x == y & x <= y) & (foo >= baz | ((~ true & 0 > 1) | x % 2 == 0))) & ~ true
   ; Substitute
       @y -> 7 - y
   { POST: INVARIANT == PLACEHOLDER }
@@ -286,7 +286,7 @@ Path 47:
   { PRE: false }
   ; Substitute
       @x -> 10
-  ; Assume ((~ x == y & x <= y) & ~ ((foo >= baz | ~ true) & (0 > 1 | x % 2 == 0))) & true
+  ; Assume ((~ x == y & x <= y) & ~ (foo >= baz | ((~ true & 0 > 1) | x % 2 == 0))) & true
   ; Substitute
       @y -> 7 - y
   { POST: INVARIANT == PLACEHOLDER }
@@ -324,7 +324,7 @@ Path 54:
   { PRE: false }
   ; Substitute
       @x -> 10
-  ; Assume ((~ x == y & x <= y) & ~ ((foo >= baz | ~ true) & (0 > 1 | x % 2 == 0))) & ~ true
+  ; Assume ((~ x == y & x <= y) & ~ (foo >= baz | ((~ true & 0 > 1) | x % 2 == 0))) & ~ true
   ; Substitute
       @y -> 7 - y
   { POST: INVARIANT == PLACEHOLDER }
@@ -358,7 +358,7 @@ Path 61:
   { PRE: false }
   ; Substitute
       @x -> 10
-  ; Assume ((~ x == y & ~ x <= y) & ((foo >= baz | ~ true) & (0 > 1 | x % 2 == 0))) & true
+  ; Assume ((~ x == y & ~ x <= y) & (foo >= baz | ((~ true & 0 > 1) | x % 2 == 0))) & true
   ; Substitute
       @z -> (4 + 30) - ((x * y) / 24)
   ; Substitute
@@ -372,7 +372,7 @@ Path 62:
   { PRE: false }
   ; Substitute
       @x -> 10
-  ; Assume ((~ x == y & ~ x <= y) & ((foo >= baz | ~ true) & (0 > 1 | x % 2 == 0))) & ~ true
+  ; Assume ((~ x == y & ~ x <= y) & (foo >= baz | ((~ true & 0 > 1) | x % 2 == 0))) & ~ true
   ; Substitute
       @z -> (4 + 30) - ((x * y) / 24)
   ; Substitute
@@ -382,7 +382,7 @@ Path 63:
   { PRE: false }
   ; Substitute
       @x -> 10
-  ; Assume ((~ x == y & ~ x <= y) & ~ ((foo >= baz | ~ true) & (0 > 1 | x % 2 == 0))) & true
+  ; Assume ((~ x == y & ~ x <= y) & ~ (foo >= baz | ((~ true & 0 > 1) | x % 2 == 0))) & true
   ; Substitute
       @x -> 10
       @y -> 20
@@ -394,7 +394,7 @@ Path 64:
   { PRE: false }
   ; Substitute
       @x -> 10
-  ; Assume ((~ x == y & ~ x <= y) & ~ ((foo >= baz | ~ true) & (0 > 1 | x % 2 == 0))) & ~ true
+  ; Assume ((~ x == y & ~ x <= y) & ~ (foo >= baz | ((~ true & 0 > 1) | x % 2 == 0))) & ~ true
   ; Substitute
       @catdog -> c
   { POST: true }

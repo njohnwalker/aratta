@@ -22,7 +22,7 @@ instance ParseRecord (HoudiniOptions Wrapped) where
   parseRecord = parseRecordWithModifiers
                 defaultModifiers
                 { fieldNameModifier = takeWhile isLower
-                , shortNameModifier = \case 'v':cs -> Just 'c' ; _ -> Nothing
+                , shortNameModifier = \case 'v':cs -> Just 'v' ; _ -> Nothing
                 }
 
 deriving instance Show (HoudiniOptions Unwrapped)

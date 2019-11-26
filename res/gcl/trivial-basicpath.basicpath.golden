@@ -1,9 +1,8 @@
 Path 1:
-  { PRE: x <= y }
+  { PRE: true }
   ; Substitute
-      @y -> (30 + 14) - x
+      @x -> y
+      @y -> x + y
   ; Substitute
-      @x -> 17
-  ; Substitute
-      @x -> z - 7
-  { POST: z <= x & (y <= x & (y <= z & z <= 10)) }
+      @n -> n - 1
+  { POST: true }

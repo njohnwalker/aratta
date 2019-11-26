@@ -1,0 +1,10 @@
+a * b + res == x * y
+a * b == x * y
+res == a * b
+b >= 0
+res >= 0
+x >= 0
+y >= 0
+(x * y) % (a * b) == res 
+a >= 0
+res == x * y

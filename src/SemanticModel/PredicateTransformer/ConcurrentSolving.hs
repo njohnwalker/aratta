@@ -96,7 +96,7 @@ solverThread invKey = do
 
     let vcs = runReader invariantParameterizedVCs inv
 
-    validity <- liftIO $ checkValidVCs vcs $ newCVC4Solver 10
+    validity <- liftIO $ checkValidVCs vcs $ newCVC4Solver 30
 
     case validity of
       -- Invariant is valid, report it to the TVar

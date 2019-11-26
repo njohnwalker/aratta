@@ -1,0 +1,18 @@
+Path 1:
+  { PRE: n >= 0 }
+  ; Substitute
+      @res -> 1
+      @n0 -> 1
+  { POST: INVARIANT == PLACEHOLDER }
+Path 2:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume n0 < n
+  ; Substitute
+      @n0 -> n0 + 1
+  ; Substitute
+      @res -> res * n0
+  { POST: INVARIANT == PLACEHOLDER }
+Path 3:
+  { PRE: INVARIANT == PLACEHOLDER }
+  ; Assume ~ n0 < n
+  { POST: true }

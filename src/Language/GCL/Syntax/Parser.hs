@@ -137,8 +137,9 @@ bExp = makeExprParser bTerm bOpTable
 bOpTable :: [[Operator Parser BExp]]
 bOpTable
   = [ [ Prefix $ Not <$ not ]
-    , [ InfixR $ (:|:) <$ or ]
     , [ InfixR $ (:&:) <$ and ]
+    , [ InfixR $ (:|:) <$ or ]
+    , [ InfixR $ (:=>:) <$ implies ]
     ]
     
 bTerm :: Parser BExp
