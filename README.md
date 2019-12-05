@@ -6,6 +6,8 @@
 
 This library is built using the Haskell `stack` build tool. Instructions to install `stack` are [here](https://docs.haskellstack.org/en/stable/README/#how-to-install
 
+The `houdini-verify` tool requires that the `cvc4` executable is in your PATH.
+
 Currently there are two executables in this project:
 
 - `semantic-run` executes a program given the interpretter defined for a given language.
